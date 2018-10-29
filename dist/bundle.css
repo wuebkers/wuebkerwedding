@@ -285,4 +285,160 @@ template {
 [hidden] {
   display: none !important; }
 
+nav {
+  background: #fff;
+  padding: 15px 20px;
+  position: fixed;
+  width: 100%;
+  z-index: 10; }
+  nav .logo {
+    height: 50px;
+    width: 80px; }
+  nav ul {
+    list-style: none;
+    padding: 0;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: center;
+        -ms-flex-align: center;
+            align-items: center;
+    -webkit-box-pack: center;
+        -ms-flex-pack: center;
+            justify-content: center; }
+    nav ul li a {
+      font-family: "Abril Fatface", cursive;
+      color: #333;
+      text-decoration: none;
+      padding: 0 20px;
+      font-size: 18px;
+      line-height: 0.8;
+      letter-spacing: 1px;
+      font-style: italic;
+      position: relative;
+      -webkit-transition: all .3s;
+      transition: all .3s; }
+      nav ul li a:after {
+        content: '';
+        position: absolute;
+        bottom: -5px;
+        left: 50%;
+        height: 1px;
+        width: 0;
+        -webkit-transition: all .3s;
+        transition: all .3s;
+        background: #e1e1e1; }
+      nav ul li a:hover {
+        color: #e1e1e1;
+        text-decoration: none; }
+        nav ul li a:hover:after {
+          width: calc(100% - 40px);
+          left: 20px; }
+
+.home .slider {
+  height: 85vh;
+  min-height: 500px;
+  width: 100%;
+  position: relative; }
+  .home .slider .slide-wrapper {
+    position: relative; }
+  .home .slider .slide-wrapper, .home .slider .slick-list, .home .slider .slick-track {
+    height: 100%;
+    width: 100%; }
+  .home .slider .slick-arrow {
+    display: none !important; }
+  .home .slider .container {
+    position: absolute;
+    text-align: center;
+    width: 100%;
+    top: 50%;
+    -webkit-transform: translateY(-50%);
+        -ms-transform: translateY(-50%);
+            transform: translateY(-50%);
+    z-index: 1; }
+    .home .slider .container h1 {
+      font-family: "Abril Fatface", cursive;
+      font-size: 100px;
+      font-weight: 300;
+      font-style: italic;
+      margin: 0; }
+  .home .slider .slide {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    opacity: 0 !important;
+    z-index: -1 !important; }
+    .home .slider .slide.slick-active {
+      opacity: 1 !important; }
+  .home .slider ul {
+    padding: 0;
+    list-style: none;
+    margin: 0 auto;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: center;
+        -ms-flex-align: center;
+            align-items: center;
+    -webkit-box-pack: center;
+        -ms-flex-pack: center;
+            justify-content: center;
+    position: absolute;
+    bottom: 10px;
+    width: 100%;
+    z-index: 1; }
+  .home .slider .slide {
+    background-size: cover;
+    background-position: center;
+    height: 100%;
+    width: 100%; }
+
+.home .teaser {
+  padding: 100px 0; }
+  .home .teaser .wrapper {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: center;
+        -ms-flex-align: center;
+            align-items: center;
+    -webkit-box-pack: center;
+        -ms-flex-pack: center;
+            justify-content: center; }
+  .home .teaser .image {
+    -ms-flex-preferred-size: 50%;
+        flex-basis: 50%;
+    height: 400px;
+    background-position: center;
+    background-size: cover; }
+  .home .teaser .content {
+    -ms-flex-preferred-size: 45%;
+        flex-basis: 45%;
+    padding: 50px;
+    background: rgba(255, 255, 255, 0.75);
+    margin-left: -150px; }
+
+body {
+  font-family: "Quicksand", sans-serif;
+  color: #333;
+  font-weight: 400; }
+
+.main {
+  padding-top: 100px; }
+
+.container {
+  width: 1170px;
+  padding: 0;
+  margin: 0 auto; }
+  @media screen and (max-width: 1199px) {
+    .container {
+      width: 970px; } }
+  @media screen and (max-width: 991px) {
+    .container {
+      width: 750px; } }
+  @media screen and (max-width: 767px) {
+    .container {
+      width: 100%;
+      padding: 0; } }
+
 /*# sourceMappingURL=bundle.css.map */

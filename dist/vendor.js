@@ -1,5 +1,5 @@
 /*!
- * jQuery JavaScript Library v3.2.1
+ * jQuery JavaScript Library v3.3.1
  * https://jquery.com/
  *
  * Includes Sizzle.js
@@ -9,7 +9,7 @@
  * Released under the MIT license
  * https://jquery.org/license
  *
- * Date: 2017-03-20T18:59Z
+ * Date: 2018-01-20T17:24Z
  */
 ( function( global, factory ) {
 
@@ -71,16 +71,57 @@ var ObjectFunctionString = fnToString.call( Object );
 
 var support = {};
 
+var isFunction = function isFunction( obj ) {
+
+      // Support: Chrome <=57, Firefox <=52
+      // In some browsers, typeof returns "function" for HTML <object> elements
+      // (i.e., `typeof document.createElement( "object" ) === "function"`).
+      // We don't want to classify *any* DOM node as a function.
+      return typeof obj === "function" && typeof obj.nodeType !== "number";
+  };
 
 
-	function DOMEval( code, doc ) {
+var isWindow = function isWindow( obj ) {
+		return obj != null && obj === obj.window;
+	};
+
+
+
+
+	var preservedScriptAttributes = {
+		type: true,
+		src: true,
+		noModule: true
+	};
+
+	function DOMEval( code, doc, node ) {
 		doc = doc || document;
 
-		var script = doc.createElement( "script" );
+		var i,
+			script = doc.createElement( "script" );
 
 		script.text = code;
+		if ( node ) {
+			for ( i in preservedScriptAttributes ) {
+				if ( node[ i ] ) {
+					script[ i ] = node[ i ];
+				}
+			}
+		}
 		doc.head.appendChild( script ).parentNode.removeChild( script );
 	}
+
+
+function toType( obj ) {
+	if ( obj == null ) {
+		return obj + "";
+	}
+
+	// Support: Android <=2.3 only (functionish RegExp)
+	return typeof obj === "object" || typeof obj === "function" ?
+		class2type[ toString.call( obj ) ] || "object" :
+		typeof obj;
+}
 /* global Symbol */
 // Defining this global in .eslintrc.json would create a danger of using the global
 // unguarded in another place, it seems safer to define global only for this module
@@ -88,7 +129,7 @@ var support = {};
 
 
 var
-	version = "3.2.1",
+	version = "3.3.1",
 
 	// Define a local copy of jQuery
 	jQuery = function( selector, context ) {
@@ -100,16 +141,7 @@ var
 
 	// Support: Android <=4.0 only
 	// Make sure we trim BOM and NBSP
-	rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g,
-
-	// Matches dashed string for camelizing
-	rmsPrefix = /^-ms-/,
-	rdashAlpha = /-([a-z])/g,
-
-	// Used by jQuery.camelCase as callback to replace()
-	fcamelCase = function( all, letter ) {
-		return letter.toUpperCase();
-	};
+	rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;
 
 jQuery.fn = jQuery.prototype = {
 
@@ -209,7 +241,7 @@ jQuery.extend = jQuery.fn.extend = function() {
 	}
 
 	// Handle case when target is a string or something (possible in deep copy)
-	if ( typeof target !== "object" && !jQuery.isFunction( target ) ) {
+	if ( typeof target !== "object" && !isFunction( target ) ) {
 		target = {};
 	}
 
@@ -275,28 +307,6 @@ jQuery.extend( {
 
 	noop: function() {},
 
-	isFunction: function( obj ) {
-		return jQuery.type( obj ) === "function";
-	},
-
-	isWindow: function( obj ) {
-		return obj != null && obj === obj.window;
-	},
-
-	isNumeric: function( obj ) {
-
-		// As of jQuery 3.0, isNumeric is limited to
-		// strings and numbers (primitives or objects)
-		// that can be coerced to finite numbers (gh-2662)
-		var type = jQuery.type( obj );
-		return ( type === "number" || type === "string" ) &&
-
-			// parseFloat NaNs numeric-cast false positives ("")
-			// ...but misinterprets leading-number strings, particularly hex literals ("0x...")
-			// subtraction forces infinities to NaN
-			!isNaN( obj - parseFloat( obj ) );
-	},
-
 	isPlainObject: function( obj ) {
 		var proto, Ctor;
 
@@ -330,27 +340,9 @@ jQuery.extend( {
 		return true;
 	},
 
-	type: function( obj ) {
-		if ( obj == null ) {
-			return obj + "";
-		}
-
-		// Support: Android <=2.3 only (functionish RegExp)
-		return typeof obj === "object" || typeof obj === "function" ?
-			class2type[ toString.call( obj ) ] || "object" :
-			typeof obj;
-	},
-
 	// Evaluates a script in a global context
 	globalEval: function( code ) {
 		DOMEval( code );
-	},
-
-	// Convert dashed to camelCase; used by the css and data modules
-	// Support: IE <=9 - 11, Edge 12 - 13
-	// Microsoft forgot to hump their vendor prefix (#9572)
-	camelCase: function( string ) {
-		return string.replace( rmsPrefix, "ms-" ).replace( rdashAlpha, fcamelCase );
 	},
 
 	each: function( obj, callback ) {
@@ -473,37 +465,6 @@ jQuery.extend( {
 	// A global GUID counter for objects
 	guid: 1,
 
-	// Bind a function to a context, optionally partially applying any
-	// arguments.
-	proxy: function( fn, context ) {
-		var tmp, args, proxy;
-
-		if ( typeof context === "string" ) {
-			tmp = fn[ context ];
-			context = fn;
-			fn = tmp;
-		}
-
-		// Quick check to determine if target is callable, in the spec
-		// this throws a TypeError, but we will just return undefined.
-		if ( !jQuery.isFunction( fn ) ) {
-			return undefined;
-		}
-
-		// Simulated bind
-		args = slice.call( arguments, 2 );
-		proxy = function() {
-			return fn.apply( context || this, args.concat( slice.call( arguments ) ) );
-		};
-
-		// Set the guid of unique handler to the same of original handler, so it can be removed
-		proxy.guid = fn.guid = fn.guid || jQuery.guid++;
-
-		return proxy;
-	},
-
-	now: Date.now,
-
 	// jQuery.support is not used in Core but other projects attach their
 	// properties to it so it needs to exist.
 	support: support
@@ -526,9 +487,9 @@ function isArrayLike( obj ) {
 	// hasOwn isn't used here due to false negatives
 	// regarding Nodelist length in IE
 	var length = !!obj && "length" in obj && obj.length,
-		type = jQuery.type( obj );
+		type = toType( obj );
 
-	if ( type === "function" || jQuery.isWindow( obj ) ) {
+	if ( isFunction( obj ) || isWindow( obj ) ) {
 		return false;
 	}
 
@@ -2848,11 +2809,9 @@ var rsingleTag = ( /^<([a-z][^\/\0>:\x20\t\r\n\f]*)[\x20\t\r\n\f]*\/?>(?:<\/\1>|
 
 
 
-var risSimple = /^.[^:#\[\.,]*$/;
-
 // Implement the identical functionality for filter and not
 function winnow( elements, qualifier, not ) {
-	if ( jQuery.isFunction( qualifier ) ) {
+	if ( isFunction( qualifier ) ) {
 		return jQuery.grep( elements, function( elem, i ) {
 			return !!qualifier.call( elem, i, elem ) !== not;
 		} );
@@ -2872,16 +2831,8 @@ function winnow( elements, qualifier, not ) {
 		} );
 	}
 
-	// Simple selector that can be filtered directly, removing non-Elements
-	if ( risSimple.test( qualifier ) ) {
-		return jQuery.filter( qualifier, elements, not );
-	}
-
-	// Complex selector, compare the two sets, removing non-Elements
-	qualifier = jQuery.filter( qualifier, elements );
-	return jQuery.grep( elements, function( elem ) {
-		return ( indexOf.call( qualifier, elem ) > -1 ) !== not && elem.nodeType === 1;
-	} );
+	// Filtered directly for both simple and complex selectors
+	return jQuery.filter( qualifier, elements, not );
 }
 
 jQuery.filter = function( expr, elems, not ) {
@@ -3002,7 +2953,7 @@ var rootjQuery,
 						for ( match in context ) {
 
 							// Properties of context are called as methods if possible
-							if ( jQuery.isFunction( this[ match ] ) ) {
+							if ( isFunction( this[ match ] ) ) {
 								this[ match ]( context[ match ] );
 
 							// ...and otherwise set as attributes
@@ -3045,7 +2996,7 @@ var rootjQuery,
 
 		// HANDLE: $(function)
 		// Shortcut for document ready
-		} else if ( jQuery.isFunction( selector ) ) {
+		} else if ( isFunction( selector ) ) {
 			return root.ready !== undefined ?
 				root.ready( selector ) :
 
@@ -3360,11 +3311,11 @@ jQuery.Callbacks = function( options ) {
 
 					( function add( args ) {
 						jQuery.each( args, function( _, arg ) {
-							if ( jQuery.isFunction( arg ) ) {
+							if ( isFunction( arg ) ) {
 								if ( !options.unique || !self.has( arg ) ) {
 									list.push( arg );
 								}
-							} else if ( arg && arg.length && jQuery.type( arg ) !== "string" ) {
+							} else if ( arg && arg.length && toType( arg ) !== "string" ) {
 
 								// Inspect recursively
 								add( arg );
@@ -3479,11 +3430,11 @@ function adoptValue( value, resolve, reject, noValue ) {
 	try {
 
 		// Check for promise aspect first to privilege synchronous behavior
-		if ( value && jQuery.isFunction( ( method = value.promise ) ) ) {
+		if ( value && isFunction( ( method = value.promise ) ) ) {
 			method.call( value ).done( resolve ).fail( reject );
 
 		// Other thenables
-		} else if ( value && jQuery.isFunction( ( method = value.then ) ) ) {
+		} else if ( value && isFunction( ( method = value.then ) ) ) {
 			method.call( value, resolve, reject );
 
 		// Other non-thenables
@@ -3541,14 +3492,14 @@ jQuery.extend( {
 						jQuery.each( tuples, function( i, tuple ) {
 
 							// Map tuples (progress, done, fail) to arguments (done, fail, progress)
-							var fn = jQuery.isFunction( fns[ tuple[ 4 ] ] ) && fns[ tuple[ 4 ] ];
+							var fn = isFunction( fns[ tuple[ 4 ] ] ) && fns[ tuple[ 4 ] ];
 
 							// deferred.progress(function() { bind to newDefer or newDefer.notify })
 							// deferred.done(function() { bind to newDefer or newDefer.resolve })
 							// deferred.fail(function() { bind to newDefer or newDefer.reject })
 							deferred[ tuple[ 1 ] ]( function() {
 								var returned = fn && fn.apply( this, arguments );
-								if ( returned && jQuery.isFunction( returned.promise ) ) {
+								if ( returned && isFunction( returned.promise ) ) {
 									returned.promise()
 										.progress( newDefer.notify )
 										.done( newDefer.resolve )
@@ -3602,7 +3553,7 @@ jQuery.extend( {
 										returned.then;
 
 									// Handle a returned thenable
-									if ( jQuery.isFunction( then ) ) {
+									if ( isFunction( then ) ) {
 
 										// Special processors (notify) just wait for resolution
 										if ( special ) {
@@ -3698,7 +3649,7 @@ jQuery.extend( {
 							resolve(
 								0,
 								newDefer,
-								jQuery.isFunction( onProgress ) ?
+								isFunction( onProgress ) ?
 									onProgress :
 									Identity,
 								newDefer.notifyWith
@@ -3710,7 +3661,7 @@ jQuery.extend( {
 							resolve(
 								0,
 								newDefer,
-								jQuery.isFunction( onFulfilled ) ?
+								isFunction( onFulfilled ) ?
 									onFulfilled :
 									Identity
 							)
@@ -3721,7 +3672,7 @@ jQuery.extend( {
 							resolve(
 								0,
 								newDefer,
-								jQuery.isFunction( onRejected ) ?
+								isFunction( onRejected ) ?
 									onRejected :
 									Thrower
 							)
@@ -3761,8 +3712,15 @@ jQuery.extend( {
 					// fulfilled_callbacks.disable
 					tuples[ 3 - i ][ 2 ].disable,
 
+					// rejected_handlers.disable
+					// fulfilled_handlers.disable
+					tuples[ 3 - i ][ 3 ].disable,
+
 					// progress_callbacks.lock
-					tuples[ 0 ][ 2 ].lock
+					tuples[ 0 ][ 2 ].lock,
+
+					// progress_handlers.lock
+					tuples[ 0 ][ 3 ].lock
 				);
 			}
 
@@ -3832,7 +3790,7 @@ jQuery.extend( {
 
 			// Use .then() to unwrap secondary thenables (cf. gh-3000)
 			if ( master.state() === "pending" ||
-				jQuery.isFunction( resolveValues[ i ] && resolveValues[ i ].then ) ) {
+				isFunction( resolveValues[ i ] && resolveValues[ i ].then ) ) {
 
 				return master.then();
 			}
@@ -3960,7 +3918,7 @@ var access = function( elems, fn, key, value, chainable, emptyGet, raw ) {
 		bulk = key == null;
 
 	// Sets many values
-	if ( jQuery.type( key ) === "object" ) {
+	if ( toType( key ) === "object" ) {
 		chainable = true;
 		for ( i in key ) {
 			access( elems, fn, i, key[ i ], true, emptyGet, raw );
@@ -3970,7 +3928,7 @@ var access = function( elems, fn, key, value, chainable, emptyGet, raw ) {
 	} else if ( value !== undefined ) {
 		chainable = true;
 
-		if ( !jQuery.isFunction( value ) ) {
+		if ( !isFunction( value ) ) {
 			raw = true;
 		}
 
@@ -4012,6 +3970,23 @@ var access = function( elems, fn, key, value, chainable, emptyGet, raw ) {
 
 	return len ? fn( elems[ 0 ], key ) : emptyGet;
 };
+
+
+// Matches dashed string for camelizing
+var rmsPrefix = /^-ms-/,
+	rdashAlpha = /-([a-z])/g;
+
+// Used by camelCase as callback to replace()
+function fcamelCase( all, letter ) {
+	return letter.toUpperCase();
+}
+
+// Convert dashed to camelCase; used by the css and data modules
+// Support: IE <=9 - 11, Edge 12 - 15
+// Microsoft forgot to hump their vendor prefix (#9572)
+function camelCase( string ) {
+	return string.replace( rmsPrefix, "ms-" ).replace( rdashAlpha, fcamelCase );
+}
 var acceptData = function( owner ) {
 
 	// Accepts only:
@@ -4074,14 +4049,14 @@ Data.prototype = {
 		// Handle: [ owner, key, value ] args
 		// Always use camelCase key (gh-2257)
 		if ( typeof data === "string" ) {
-			cache[ jQuery.camelCase( data ) ] = value;
+			cache[ camelCase( data ) ] = value;
 
 		// Handle: [ owner, { properties } ] args
 		} else {
 
 			// Copy the properties one-by-one to the cache object
 			for ( prop in data ) {
-				cache[ jQuery.camelCase( prop ) ] = data[ prop ];
+				cache[ camelCase( prop ) ] = data[ prop ];
 			}
 		}
 		return cache;
@@ -4091,7 +4066,7 @@ Data.prototype = {
 			this.cache( owner ) :
 
 			// Always use camelCase key (gh-2257)
-			owner[ this.expando ] && owner[ this.expando ][ jQuery.camelCase( key ) ];
+			owner[ this.expando ] && owner[ this.expando ][ camelCase( key ) ];
 	},
 	access: function( owner, key, value ) {
 
@@ -4139,9 +4114,9 @@ Data.prototype = {
 
 				// If key is an array of keys...
 				// We always set camelCase keys, so remove that.
-				key = key.map( jQuery.camelCase );
+				key = key.map( camelCase );
 			} else {
-				key = jQuery.camelCase( key );
+				key = camelCase( key );
 
 				// If a key with the spaces exists, use it.
 				// Otherwise, create an array by matching non-whitespace
@@ -4287,7 +4262,7 @@ jQuery.fn.extend( {
 						if ( attrs[ i ] ) {
 							name = attrs[ i ].name;
 							if ( name.indexOf( "data-" ) === 0 ) {
-								name = jQuery.camelCase( name.slice( 5 ) );
+								name = camelCase( name.slice( 5 ) );
 								dataAttr( elem, name, data[ name ] );
 							}
 						}
@@ -4534,8 +4509,7 @@ var swap = function( elem, options, callback, args ) {
 
 
 function adjustCSS( elem, prop, valueParts, tween ) {
-	var adjusted,
-		scale = 1,
+	var adjusted, scale,
 		maxIterations = 20,
 		currentValue = tween ?
 			function() {
@@ -4553,30 +4527,33 @@ function adjustCSS( elem, prop, valueParts, tween ) {
 
 	if ( initialInUnit && initialInUnit[ 3 ] !== unit ) {
 
+		// Support: Firefox <=54
+		// Halve the iteration target value to prevent interference from CSS upper bounds (gh-2144)
+		initial = initial / 2;
+
 		// Trust units reported by jQuery.css
 		unit = unit || initialInUnit[ 3 ];
-
-		// Make sure we update the tween properties later on
-		valueParts = valueParts || [];
 
 		// Iteratively approximate from a nonzero starting point
 		initialInUnit = +initial || 1;
 
-		do {
+		while ( maxIterations-- ) {
 
-			// If previous iteration zeroed out, double until we get *something*.
-			// Use string for doubling so we don't accidentally see scale as unchanged below
-			scale = scale || ".5";
-
-			// Adjust and apply
-			initialInUnit = initialInUnit / scale;
+			// Evaluate and update our best guess (doubling guesses that zero out).
+			// Finish if the scale equals or crosses 1 (making the old*new product non-positive).
 			jQuery.style( elem, prop, initialInUnit + unit );
+			if ( ( 1 - scale ) * ( 1 - ( scale = currentValue() / initial || 0.5 ) ) <= 0 ) {
+				maxIterations = 0;
+			}
+			initialInUnit = initialInUnit / scale;
 
-		// Update scale, tolerating zero or NaN from tween.cur()
-		// Break the loop if scale is unchanged or perfect, or if we've just had enough.
-		} while (
-			scale !== ( scale = currentValue() / initial ) && scale !== 1 && --maxIterations
-		);
+		}
+
+		initialInUnit = initialInUnit * 2;
+		jQuery.style( elem, prop, initialInUnit + unit );
+
+		// Make sure we update the tween properties later on
+		valueParts = valueParts || [];
 	}
 
 	if ( valueParts ) {
@@ -4694,7 +4671,7 @@ var rcheckableType = ( /^(?:checkbox|radio)$/i );
 
 var rtagName = ( /<([a-z][^\/\0>\x20\t\r\n\f]+)/i );
 
-var rscriptType = ( /^$|\/(?:java|ecma)script/i );
+var rscriptType = ( /^$|^module$|\/(?:java|ecma)script/i );
 
 
 
@@ -4776,7 +4753,7 @@ function buildFragment( elems, context, scripts, selection, ignored ) {
 		if ( elem || elem === 0 ) {
 
 			// Add nodes directly
-			if ( jQuery.type( elem ) === "object" ) {
+			if ( toType( elem ) === "object" ) {
 
 				// Support: Android <=4.0 only, PhantomJS 1 only
 				// push.apply(_, arraylike) throws on ancient WebKit
@@ -5286,7 +5263,7 @@ jQuery.event = {
 			enumerable: true,
 			configurable: true,
 
-			get: jQuery.isFunction( hook ) ?
+			get: isFunction( hook ) ?
 				function() {
 					if ( this.originalEvent ) {
 							return hook( this.originalEvent );
@@ -5421,7 +5398,7 @@ jQuery.Event = function( src, props ) {
 	}
 
 	// Create a timestamp if incoming event doesn't have one
-	this.timeStamp = src && src.timeStamp || jQuery.now();
+	this.timeStamp = src && src.timeStamp || Date.now();
 
 	// Mark it as fixed
 	this[ jQuery.expando ] = true;
@@ -5620,14 +5597,13 @@ var
 
 	/* eslint-enable */
 
-	// Support: IE <=10 - 11, Edge 12 - 13
+	// Support: IE <=10 - 11, Edge 12 - 13 only
 	// In IE/Edge using regex groups here causes severe slowdowns.
 	// See https://connect.microsoft.com/IE/feedback/details/1736512/
 	rnoInnerhtml = /<script|<style|<link/i,
 
 	// checked="checked" or checked
 	rchecked = /checked\s*(?:[^=]|=\s*.checked.)/i,
-	rscriptTypeMasked = /^true\/(.*)/,
 	rcleanScript = /^\s*<!(?:\[CDATA\[|--)|(?:\]\]|--)>\s*$/g;
 
 // Prefer a tbody over its parent table for containing new rows
@@ -5635,7 +5611,7 @@ function manipulationTarget( elem, content ) {
 	if ( nodeName( elem, "table" ) &&
 		nodeName( content.nodeType !== 11 ? content : content.firstChild, "tr" ) ) {
 
-		return jQuery( ">tbody", elem )[ 0 ] || elem;
+		return jQuery( elem ).children( "tbody" )[ 0 ] || elem;
 	}
 
 	return elem;
@@ -5647,10 +5623,8 @@ function disableScript( elem ) {
 	return elem;
 }
 function restoreScript( elem ) {
-	var match = rscriptTypeMasked.exec( elem.type );
-
-	if ( match ) {
-		elem.type = match[ 1 ];
+	if ( ( elem.type || "" ).slice( 0, 5 ) === "true/" ) {
+		elem.type = elem.type.slice( 5 );
 	} else {
 		elem.removeAttribute( "type" );
 	}
@@ -5716,15 +5690,15 @@ function domManip( collection, args, callback, ignored ) {
 		l = collection.length,
 		iNoClone = l - 1,
 		value = args[ 0 ],
-		isFunction = jQuery.isFunction( value );
+		valueIsFunction = isFunction( value );
 
 	// We can't cloneNode fragments that contain checked, in WebKit
-	if ( isFunction ||
+	if ( valueIsFunction ||
 			( l > 1 && typeof value === "string" &&
 				!support.checkClone && rchecked.test( value ) ) ) {
 		return collection.each( function( index ) {
 			var self = collection.eq( index );
-			if ( isFunction ) {
+			if ( valueIsFunction ) {
 				args[ 0 ] = value.call( this, index, self.html() );
 			}
 			domManip( self, args, callback, ignored );
@@ -5778,14 +5752,14 @@ function domManip( collection, args, callback, ignored ) {
 						!dataPriv.access( node, "globalEval" ) &&
 						jQuery.contains( doc, node ) ) {
 
-						if ( node.src ) {
+						if ( node.src && ( node.type || "" ).toLowerCase()  !== "module" ) {
 
 							// Optional AJAX dependency, but won't run scripts if not present
 							if ( jQuery._evalUrl ) {
 								jQuery._evalUrl( node.src );
 							}
 						} else {
-							DOMEval( node.textContent.replace( rcleanScript, "" ), doc );
+							DOMEval( node.textContent.replace( rcleanScript, "" ), doc, node );
 						}
 					}
 				}
@@ -6065,8 +6039,6 @@ jQuery.each( {
 		return this.pushStack( ret );
 	};
 } );
-var rmargin = ( /^margin/ );
-
 var rnumnonpx = new RegExp( "^(" + pnum + ")(?!px)[a-z%]+$", "i" );
 
 var getStyles = function( elem ) {
@@ -6083,6 +6055,8 @@ var getStyles = function( elem ) {
 		return view.getComputedStyle( elem );
 	};
 
+var rboxStyle = new RegExp( cssExpand.join( "|" ), "i" );
+
 
 
 ( function() {
@@ -6096,25 +6070,33 @@ var getStyles = function( elem ) {
 			return;
 		}
 
+		container.style.cssText = "position:absolute;left:-11111px;width:60px;" +
+			"margin-top:1px;padding:0;border:0";
 		div.style.cssText =
-			"box-sizing:border-box;" +
-			"position:relative;display:block;" +
+			"position:relative;display:block;box-sizing:border-box;overflow:scroll;" +
 			"margin:auto;border:1px;padding:1px;" +
-			"top:1%;width:50%";
-		div.innerHTML = "";
-		documentElement.appendChild( container );
+			"width:60%;top:1%";
+		documentElement.appendChild( container ).appendChild( div );
 
 		var divStyle = window.getComputedStyle( div );
 		pixelPositionVal = divStyle.top !== "1%";
 
 		// Support: Android 4.0 - 4.3 only, Firefox <=3 - 44
-		reliableMarginLeftVal = divStyle.marginLeft === "2px";
-		boxSizingReliableVal = divStyle.width === "4px";
+		reliableMarginLeftVal = roundPixelMeasures( divStyle.marginLeft ) === 12;
 
-		// Support: Android 4.0 - 4.3 only
+		// Support: Android 4.0 - 4.3 only, Safari <=9.1 - 10.1, iOS <=7.0 - 9.3
 		// Some styles come back with percentage values, even though they shouldn't
-		div.style.marginRight = "50%";
-		pixelMarginRightVal = divStyle.marginRight === "4px";
+		div.style.right = "60%";
+		pixelBoxStylesVal = roundPixelMeasures( divStyle.right ) === 36;
+
+		// Support: IE 9 - 11 only
+		// Detect misreporting of content dimensions for box-sizing:border-box elements
+		boxSizingReliableVal = roundPixelMeasures( divStyle.width ) === 36;
+
+		// Support: IE 9 only
+		// Detect overflow:scroll screwiness (gh-3699)
+		div.style.position = "absolute";
+		scrollboxSizeVal = div.offsetWidth === 36 || "absolute";
 
 		documentElement.removeChild( container );
 
@@ -6123,7 +6105,12 @@ var getStyles = function( elem ) {
 		div = null;
 	}
 
-	var pixelPositionVal, boxSizingReliableVal, pixelMarginRightVal, reliableMarginLeftVal,
+	function roundPixelMeasures( measure ) {
+		return Math.round( parseFloat( measure ) );
+	}
+
+	var pixelPositionVal, boxSizingReliableVal, scrollboxSizeVal, pixelBoxStylesVal,
+		reliableMarginLeftVal,
 		container = document.createElement( "div" ),
 		div = document.createElement( "div" );
 
@@ -6138,26 +6125,26 @@ var getStyles = function( elem ) {
 	div.cloneNode( true ).style.backgroundClip = "";
 	support.clearCloneStyle = div.style.backgroundClip === "content-box";
 
-	container.style.cssText = "border:0;width:8px;height:0;top:0;left:-9999px;" +
-		"padding:0;margin-top:1px;position:absolute";
-	container.appendChild( div );
-
 	jQuery.extend( support, {
-		pixelPosition: function() {
-			computeStyleTests();
-			return pixelPositionVal;
-		},
 		boxSizingReliable: function() {
 			computeStyleTests();
 			return boxSizingReliableVal;
 		},
-		pixelMarginRight: function() {
+		pixelBoxStyles: function() {
 			computeStyleTests();
-			return pixelMarginRightVal;
+			return pixelBoxStylesVal;
+		},
+		pixelPosition: function() {
+			computeStyleTests();
+			return pixelPositionVal;
 		},
 		reliableMarginLeft: function() {
 			computeStyleTests();
 			return reliableMarginLeftVal;
+		},
+		scrollboxSize: function() {
+			computeStyleTests();
+			return scrollboxSizeVal;
 		}
 	} );
 } )();
@@ -6189,7 +6176,7 @@ function curCSS( elem, name, computed ) {
 		// but width seems to be reliably pixels.
 		// This is against the CSSOM draft spec:
 		// https://drafts.csswg.org/cssom/#resolved-values
-		if ( !support.pixelMarginRight() && rnumnonpx.test( ret ) && rmargin.test( name ) ) {
+		if ( !support.pixelBoxStyles() && rnumnonpx.test( ret ) && rboxStyle.test( name ) ) {
 
 			// Remember the original values
 			width = style.width;
@@ -6294,87 +6281,120 @@ function setPositiveNumber( elem, value, subtract ) {
 		value;
 }
 
-function augmentWidthOrHeight( elem, name, extra, isBorderBox, styles ) {
-	var i,
-		val = 0;
+function boxModelAdjustment( elem, dimension, box, isBorderBox, styles, computedVal ) {
+	var i = dimension === "width" ? 1 : 0,
+		extra = 0,
+		delta = 0;
 
-	// If we already have the right measurement, avoid augmentation
-	if ( extra === ( isBorderBox ? "border" : "content" ) ) {
-		i = 4;
-
-	// Otherwise initialize for horizontal or vertical properties
-	} else {
-		i = name === "width" ? 1 : 0;
+	// Adjustment may not be necessary
+	if ( box === ( isBorderBox ? "border" : "content" ) ) {
+		return 0;
 	}
 
 	for ( ; i < 4; i += 2 ) {
 
-		// Both box models exclude margin, so add it if we want it
-		if ( extra === "margin" ) {
-			val += jQuery.css( elem, extra + cssExpand[ i ], true, styles );
+		// Both box models exclude margin
+		if ( box === "margin" ) {
+			delta += jQuery.css( elem, box + cssExpand[ i ], true, styles );
 		}
 
-		if ( isBorderBox ) {
+		// If we get here with a content-box, we're seeking "padding" or "border" or "margin"
+		if ( !isBorderBox ) {
 
-			// border-box includes padding, so remove it if we want content
-			if ( extra === "content" ) {
-				val -= jQuery.css( elem, "padding" + cssExpand[ i ], true, styles );
+			// Add padding
+			delta += jQuery.css( elem, "padding" + cssExpand[ i ], true, styles );
+
+			// For "border" or "margin", add border
+			if ( box !== "padding" ) {
+				delta += jQuery.css( elem, "border" + cssExpand[ i ] + "Width", true, styles );
+
+			// But still keep track of it otherwise
+			} else {
+				extra += jQuery.css( elem, "border" + cssExpand[ i ] + "Width", true, styles );
 			}
 
-			// At this point, extra isn't border nor margin, so remove border
-			if ( extra !== "margin" ) {
-				val -= jQuery.css( elem, "border" + cssExpand[ i ] + "Width", true, styles );
-			}
+		// If we get here with a border-box (content + padding + border), we're seeking "content" or
+		// "padding" or "margin"
 		} else {
 
-			// At this point, extra isn't content, so add padding
-			val += jQuery.css( elem, "padding" + cssExpand[ i ], true, styles );
+			// For "content", subtract padding
+			if ( box === "content" ) {
+				delta -= jQuery.css( elem, "padding" + cssExpand[ i ], true, styles );
+			}
 
-			// At this point, extra isn't content nor padding, so add border
-			if ( extra !== "padding" ) {
-				val += jQuery.css( elem, "border" + cssExpand[ i ] + "Width", true, styles );
+			// For "content" or "padding", subtract border
+			if ( box !== "margin" ) {
+				delta -= jQuery.css( elem, "border" + cssExpand[ i ] + "Width", true, styles );
 			}
 		}
 	}
 
-	return val;
+	// Account for positive content-box scroll gutter when requested by providing computedVal
+	if ( !isBorderBox && computedVal >= 0 ) {
+
+		// offsetWidth/offsetHeight is a rounded sum of content, padding, scroll gutter, and border
+		// Assuming integer scroll gutter, subtract the rest and round down
+		delta += Math.max( 0, Math.ceil(
+			elem[ "offset" + dimension[ 0 ].toUpperCase() + dimension.slice( 1 ) ] -
+			computedVal -
+			delta -
+			extra -
+			0.5
+		) );
+	}
+
+	return delta;
 }
 
-function getWidthOrHeight( elem, name, extra ) {
+function getWidthOrHeight( elem, dimension, extra ) {
 
 	// Start with computed style
-	var valueIsBorderBox,
-		styles = getStyles( elem ),
-		val = curCSS( elem, name, styles ),
-		isBorderBox = jQuery.css( elem, "boxSizing", false, styles ) === "border-box";
+	var styles = getStyles( elem ),
+		val = curCSS( elem, dimension, styles ),
+		isBorderBox = jQuery.css( elem, "boxSizing", false, styles ) === "border-box",
+		valueIsBorderBox = isBorderBox;
 
-	// Computed unit is not pixels. Stop here and return.
+	// Support: Firefox <=54
+	// Return a confounding non-pixel value or feign ignorance, as appropriate.
 	if ( rnumnonpx.test( val ) ) {
-		return val;
+		if ( !extra ) {
+			return val;
+		}
+		val = "auto";
 	}
 
 	// Check for style in case a browser which returns unreliable values
 	// for getComputedStyle silently falls back to the reliable elem.style
-	valueIsBorderBox = isBorderBox &&
-		( support.boxSizingReliable() || val === elem.style[ name ] );
+	valueIsBorderBox = valueIsBorderBox &&
+		( support.boxSizingReliable() || val === elem.style[ dimension ] );
 
-	// Fall back to offsetWidth/Height when value is "auto"
+	// Fall back to offsetWidth/offsetHeight when value is "auto"
 	// This happens for inline elements with no explicit setting (gh-3571)
-	if ( val === "auto" ) {
-		val = elem[ "offset" + name[ 0 ].toUpperCase() + name.slice( 1 ) ];
+	// Support: Android <=4.1 - 4.3 only
+	// Also use offsetWidth/offsetHeight for misreported inline dimensions (gh-3602)
+	if ( val === "auto" ||
+		!parseFloat( val ) && jQuery.css( elem, "display", false, styles ) === "inline" ) {
+
+		val = elem[ "offset" + dimension[ 0 ].toUpperCase() + dimension.slice( 1 ) ];
+
+		// offsetWidth/offsetHeight provide border-box values
+		valueIsBorderBox = true;
 	}
 
-	// Normalize "", auto, and prepare for extra
+	// Normalize "" and auto
 	val = parseFloat( val ) || 0;
 
-	// Use the active box-sizing model to add/subtract irrelevant styles
+	// Adjust for the element's box model
 	return ( val +
-		augmentWidthOrHeight(
+		boxModelAdjustment(
 			elem,
-			name,
+			dimension,
 			extra || ( isBorderBox ? "border" : "content" ),
 			valueIsBorderBox,
-			styles
+			styles,
+
+			// Provide the current computed size to request scroll gutter calculation (gh-3589)
+			val
 		)
 	) + "px";
 }
@@ -6415,9 +6435,7 @@ jQuery.extend( {
 
 	// Add in properties whose names you wish to fix before
 	// setting or getting the value
-	cssProps: {
-		"float": "cssFloat"
-	},
+	cssProps: {},
 
 	// Get and set the style property on a DOM Node
 	style: function( elem, name, value, extra ) {
@@ -6429,7 +6447,7 @@ jQuery.extend( {
 
 		// Make sure that we're working with the right name
 		var ret, type, hooks,
-			origName = jQuery.camelCase( name ),
+			origName = camelCase( name ),
 			isCustomProp = rcustomProp.test( name ),
 			style = elem.style;
 
@@ -6497,7 +6515,7 @@ jQuery.extend( {
 
 	css: function( elem, name, extra, styles ) {
 		var val, num, hooks,
-			origName = jQuery.camelCase( name ),
+			origName = camelCase( name ),
 			isCustomProp = rcustomProp.test( name );
 
 		// Make sure that we're working with the right name. We don't
@@ -6535,8 +6553,8 @@ jQuery.extend( {
 	}
 } );
 
-jQuery.each( [ "height", "width" ], function( i, name ) {
-	jQuery.cssHooks[ name ] = {
+jQuery.each( [ "height", "width" ], function( i, dimension ) {
+	jQuery.cssHooks[ dimension ] = {
 		get: function( elem, computed, extra ) {
 			if ( computed ) {
 
@@ -6552,29 +6570,41 @@ jQuery.each( [ "height", "width" ], function( i, name ) {
 					// in IE throws an error.
 					( !elem.getClientRects().length || !elem.getBoundingClientRect().width ) ?
 						swap( elem, cssShow, function() {
-							return getWidthOrHeight( elem, name, extra );
+							return getWidthOrHeight( elem, dimension, extra );
 						} ) :
-						getWidthOrHeight( elem, name, extra );
+						getWidthOrHeight( elem, dimension, extra );
 			}
 		},
 
 		set: function( elem, value, extra ) {
 			var matches,
-				styles = extra && getStyles( elem ),
-				subtract = extra && augmentWidthOrHeight(
+				styles = getStyles( elem ),
+				isBorderBox = jQuery.css( elem, "boxSizing", false, styles ) === "border-box",
+				subtract = extra && boxModelAdjustment(
 					elem,
-					name,
+					dimension,
 					extra,
-					jQuery.css( elem, "boxSizing", false, styles ) === "border-box",
+					isBorderBox,
 					styles
 				);
+
+			// Account for unreliable border-box dimensions by comparing offset* to computed and
+			// faking a content-box to get border and padding (gh-3699)
+			if ( isBorderBox && support.scrollboxSize() === styles.position ) {
+				subtract -= Math.ceil(
+					elem[ "offset" + dimension[ 0 ].toUpperCase() + dimension.slice( 1 ) ] -
+					parseFloat( styles[ dimension ] ) -
+					boxModelAdjustment( elem, dimension, "border", false, styles ) -
+					0.5
+				);
+			}
 
 			// Convert to pixels if value adjustment is needed
 			if ( subtract && ( matches = rcssNum.exec( value ) ) &&
 				( matches[ 3 ] || "px" ) !== "px" ) {
 
-				elem.style[ name ] = value;
-				value = jQuery.css( elem, name );
+				elem.style[ dimension ] = value;
+				value = jQuery.css( elem, dimension );
 			}
 
 			return setPositiveNumber( elem, value, subtract );
@@ -6618,7 +6648,7 @@ jQuery.each( {
 		}
 	};
 
-	if ( !rmargin.test( prefix ) ) {
+	if ( prefix !== "margin" ) {
 		jQuery.cssHooks[ prefix + suffix ].set = setPositiveNumber;
 	}
 } );
@@ -6789,7 +6819,7 @@ function createFxNow() {
 	window.setTimeout( function() {
 		fxNow = undefined;
 	} );
-	return ( fxNow = jQuery.now() );
+	return ( fxNow = Date.now() );
 }
 
 // Generate parameters to create a standard animation
@@ -6893,9 +6923,10 @@ function defaultPrefilter( elem, props, opts ) {
 	// Restrict "overflow" and "display" styles during box animations
 	if ( isBox && elem.nodeType === 1 ) {
 
-		// Support: IE <=9 - 11, Edge 12 - 13
+		// Support: IE <=9 - 11, Edge 12 - 15
 		// Record all 3 overflow attributes because IE does not infer the shorthand
-		// from identically-valued overflowX and overflowY
+		// from identically-valued overflowX and overflowY and Edge just mirrors
+		// the overflowX value there.
 		opts.overflow = [ style.overflow, style.overflowX, style.overflowY ];
 
 		// Identify a display type, preferring old show/hide data over the CSS cascade
@@ -7003,7 +7034,7 @@ function propFilter( props, specialEasing ) {
 
 	// camelCase, specialEasing and expand cssHook pass
 	for ( index in props ) {
-		name = jQuery.camelCase( index );
+		name = camelCase( index );
 		easing = specialEasing[ name ];
 		value = props[ index ];
 		if ( Array.isArray( value ) ) {
@@ -7128,9 +7159,9 @@ function Animation( elem, properties, options ) {
 	for ( ; index < length; index++ ) {
 		result = Animation.prefilters[ index ].call( animation, elem, props, animation.opts );
 		if ( result ) {
-			if ( jQuery.isFunction( result.stop ) ) {
+			if ( isFunction( result.stop ) ) {
 				jQuery._queueHooks( animation.elem, animation.opts.queue ).stop =
-					jQuery.proxy( result.stop, result );
+					result.stop.bind( result );
 			}
 			return result;
 		}
@@ -7138,7 +7169,7 @@ function Animation( elem, properties, options ) {
 
 	jQuery.map( props, createTween, animation );
 
-	if ( jQuery.isFunction( animation.opts.start ) ) {
+	if ( isFunction( animation.opts.start ) ) {
 		animation.opts.start.call( elem, animation );
 	}
 
@@ -7171,7 +7202,7 @@ jQuery.Animation = jQuery.extend( Animation, {
 	},
 
 	tweener: function( props, callback ) {
-		if ( jQuery.isFunction( props ) ) {
+		if ( isFunction( props ) ) {
 			callback = props;
 			props = [ "*" ];
 		} else {
@@ -7203,9 +7234,9 @@ jQuery.Animation = jQuery.extend( Animation, {
 jQuery.speed = function( speed, easing, fn ) {
 	var opt = speed && typeof speed === "object" ? jQuery.extend( {}, speed ) : {
 		complete: fn || !fn && easing ||
-			jQuery.isFunction( speed ) && speed,
+			isFunction( speed ) && speed,
 		duration: speed,
-		easing: fn && easing || easing && !jQuery.isFunction( easing ) && easing
+		easing: fn && easing || easing && !isFunction( easing ) && easing
 	};
 
 	// Go to the end state if fx are off
@@ -7232,7 +7263,7 @@ jQuery.speed = function( speed, easing, fn ) {
 	opt.old = opt.complete;
 
 	opt.complete = function() {
-		if ( jQuery.isFunction( opt.old ) ) {
+		if ( isFunction( opt.old ) ) {
 			opt.old.call( this );
 		}
 
@@ -7396,7 +7427,7 @@ jQuery.fx.tick = function() {
 		i = 0,
 		timers = jQuery.timers;
 
-	fxNow = jQuery.now();
+	fxNow = Date.now();
 
 	for ( ; i < timers.length; i++ ) {
 		timer = timers[ i ];
@@ -7749,7 +7780,7 @@ jQuery.each( [
 
 
 	// Strip and collapse whitespace according to HTML spec
-	// https://html.spec.whatwg.org/multipage/infrastructure.html#strip-and-collapse-whitespace
+	// https://infra.spec.whatwg.org/#strip-and-collapse-ascii-whitespace
 	function stripAndCollapse( value ) {
 		var tokens = value.match( rnothtmlwhite ) || [];
 		return tokens.join( " " );
@@ -7760,20 +7791,30 @@ function getClass( elem ) {
 	return elem.getAttribute && elem.getAttribute( "class" ) || "";
 }
 
+function classesToArray( value ) {
+	if ( Array.isArray( value ) ) {
+		return value;
+	}
+	if ( typeof value === "string" ) {
+		return value.match( rnothtmlwhite ) || [];
+	}
+	return [];
+}
+
 jQuery.fn.extend( {
 	addClass: function( value ) {
 		var classes, elem, cur, curValue, clazz, j, finalValue,
 			i = 0;
 
-		if ( jQuery.isFunction( value ) ) {
+		if ( isFunction( value ) ) {
 			return this.each( function( j ) {
 				jQuery( this ).addClass( value.call( this, j, getClass( this ) ) );
 			} );
 		}
 
-		if ( typeof value === "string" && value ) {
-			classes = value.match( rnothtmlwhite ) || [];
+		classes = classesToArray( value );
 
+		if ( classes.length ) {
 			while ( ( elem = this[ i++ ] ) ) {
 				curValue = getClass( elem );
 				cur = elem.nodeType === 1 && ( " " + stripAndCollapse( curValue ) + " " );
@@ -7802,7 +7843,7 @@ jQuery.fn.extend( {
 		var classes, elem, cur, curValue, clazz, j, finalValue,
 			i = 0;
 
-		if ( jQuery.isFunction( value ) ) {
+		if ( isFunction( value ) ) {
 			return this.each( function( j ) {
 				jQuery( this ).removeClass( value.call( this, j, getClass( this ) ) );
 			} );
@@ -7812,9 +7853,9 @@ jQuery.fn.extend( {
 			return this.attr( "class", "" );
 		}
 
-		if ( typeof value === "string" && value ) {
-			classes = value.match( rnothtmlwhite ) || [];
+		classes = classesToArray( value );
 
+		if ( classes.length ) {
 			while ( ( elem = this[ i++ ] ) ) {
 				curValue = getClass( elem );
 
@@ -7844,13 +7885,14 @@ jQuery.fn.extend( {
 	},
 
 	toggleClass: function( value, stateVal ) {
-		var type = typeof value;
+		var type = typeof value,
+			isValidValue = type === "string" || Array.isArray( value );
 
-		if ( typeof stateVal === "boolean" && type === "string" ) {
+		if ( typeof stateVal === "boolean" && isValidValue ) {
 			return stateVal ? this.addClass( value ) : this.removeClass( value );
 		}
 
-		if ( jQuery.isFunction( value ) ) {
+		if ( isFunction( value ) ) {
 			return this.each( function( i ) {
 				jQuery( this ).toggleClass(
 					value.call( this, i, getClass( this ), stateVal ),
@@ -7862,12 +7904,12 @@ jQuery.fn.extend( {
 		return this.each( function() {
 			var className, i, self, classNames;
 
-			if ( type === "string" ) {
+			if ( isValidValue ) {
 
 				// Toggle individual class names
 				i = 0;
 				self = jQuery( this );
-				classNames = value.match( rnothtmlwhite ) || [];
+				classNames = classesToArray( value );
 
 				while ( ( className = classNames[ i++ ] ) ) {
 
@@ -7926,7 +7968,7 @@ var rreturn = /\r/g;
 
 jQuery.fn.extend( {
 	val: function( value ) {
-		var hooks, ret, isFunction,
+		var hooks, ret, valueIsFunction,
 			elem = this[ 0 ];
 
 		if ( !arguments.length ) {
@@ -7955,7 +7997,7 @@ jQuery.fn.extend( {
 			return;
 		}
 
-		isFunction = jQuery.isFunction( value );
+		valueIsFunction = isFunction( value );
 
 		return this.each( function( i ) {
 			var val;
@@ -7964,7 +8006,7 @@ jQuery.fn.extend( {
 				return;
 			}
 
-			if ( isFunction ) {
+			if ( valueIsFunction ) {
 				val = value.call( this, i, jQuery( this ).val() );
 			} else {
 				val = value;
@@ -8106,18 +8148,24 @@ jQuery.each( [ "radio", "checkbox" ], function() {
 // Return jQuery for attributes-only inclusion
 
 
-var rfocusMorph = /^(?:focusinfocus|focusoutblur)$/;
+support.focusin = "onfocusin" in window;
+
+
+var rfocusMorph = /^(?:focusinfocus|focusoutblur)$/,
+	stopPropagationCallback = function( e ) {
+		e.stopPropagation();
+	};
 
 jQuery.extend( jQuery.event, {
 
 	trigger: function( event, data, elem, onlyHandlers ) {
 
-		var i, cur, tmp, bubbleType, ontype, handle, special,
+		var i, cur, tmp, bubbleType, ontype, handle, special, lastElement,
 			eventPath = [ elem || document ],
 			type = hasOwn.call( event, "type" ) ? event.type : event,
 			namespaces = hasOwn.call( event, "namespace" ) ? event.namespace.split( "." ) : [];
 
-		cur = tmp = elem = elem || document;
+		cur = lastElement = tmp = elem = elem || document;
 
 		// Don't do events on text and comment nodes
 		if ( elem.nodeType === 3 || elem.nodeType === 8 ) {
@@ -8169,7 +8217,7 @@ jQuery.extend( jQuery.event, {
 
 		// Determine event propagation path in advance, per W3C events spec (#9951)
 		// Bubble up to document, then to window; watch for a global ownerDocument var (#9724)
-		if ( !onlyHandlers && !special.noBubble && !jQuery.isWindow( elem ) ) {
+		if ( !onlyHandlers && !special.noBubble && !isWindow( elem ) ) {
 
 			bubbleType = special.delegateType || type;
 			if ( !rfocusMorph.test( bubbleType + type ) ) {
@@ -8189,7 +8237,7 @@ jQuery.extend( jQuery.event, {
 		// Fire handlers on the event path
 		i = 0;
 		while ( ( cur = eventPath[ i++ ] ) && !event.isPropagationStopped() ) {
-
+			lastElement = cur;
 			event.type = i > 1 ?
 				bubbleType :
 				special.bindType || type;
@@ -8221,7 +8269,7 @@ jQuery.extend( jQuery.event, {
 
 				// Call a native DOM method on the target with the same name as the event.
 				// Don't do default actions on window, that's where global variables be (#6170)
-				if ( ontype && jQuery.isFunction( elem[ type ] ) && !jQuery.isWindow( elem ) ) {
+				if ( ontype && isFunction( elem[ type ] ) && !isWindow( elem ) ) {
 
 					// Don't re-trigger an onFOO event when we call its FOO() method
 					tmp = elem[ ontype ];
@@ -8232,7 +8280,17 @@ jQuery.extend( jQuery.event, {
 
 					// Prevent re-triggering of the same event, since we already bubbled it above
 					jQuery.event.triggered = type;
+
+					if ( event.isPropagationStopped() ) {
+						lastElement.addEventListener( type, stopPropagationCallback );
+					}
+
 					elem[ type ]();
+
+					if ( event.isPropagationStopped() ) {
+						lastElement.removeEventListener( type, stopPropagationCallback );
+					}
+
 					jQuery.event.triggered = undefined;
 
 					if ( tmp ) {
@@ -8278,31 +8336,6 @@ jQuery.fn.extend( {
 } );
 
 
-jQuery.each( ( "blur focus focusin focusout resize scroll click dblclick " +
-	"mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave " +
-	"change select submit keydown keypress keyup contextmenu" ).split( " " ),
-	function( i, name ) {
-
-	// Handle event binding
-	jQuery.fn[ name ] = function( data, fn ) {
-		return arguments.length > 0 ?
-			this.on( name, null, data, fn ) :
-			this.trigger( name );
-	};
-} );
-
-jQuery.fn.extend( {
-	hover: function( fnOver, fnOut ) {
-		return this.mouseenter( fnOver ).mouseleave( fnOut || fnOver );
-	}
-} );
-
-
-
-
-support.focusin = "onfocusin" in window;
-
-
 // Support: Firefox <=44
 // Firefox doesn't have focus(in | out) events
 // Related ticket - https://bugzilla.mozilla.org/show_bug.cgi?id=687787
@@ -8346,7 +8379,7 @@ if ( !support.focusin ) {
 }
 var location = window.location;
 
-var nonce = jQuery.now();
+var nonce = Date.now();
 
 var rquery = ( /\?/ );
 
@@ -8404,7 +8437,7 @@ function buildParams( prefix, obj, traditional, add ) {
 			}
 		} );
 
-	} else if ( !traditional && jQuery.type( obj ) === "object" ) {
+	} else if ( !traditional && toType( obj ) === "object" ) {
 
 		// Serialize object item.
 		for ( name in obj ) {
@@ -8426,7 +8459,7 @@ jQuery.param = function( a, traditional ) {
 		add = function( key, valueOrFunction ) {
 
 			// If value is a function, invoke it and use its return value
-			var value = jQuery.isFunction( valueOrFunction ) ?
+			var value = isFunction( valueOrFunction ) ?
 				valueOrFunction() :
 				valueOrFunction;
 
@@ -8544,7 +8577,7 @@ function addToPrefiltersOrTransports( structure ) {
 			i = 0,
 			dataTypes = dataTypeExpression.toLowerCase().match( rnothtmlwhite ) || [];
 
-		if ( jQuery.isFunction( func ) ) {
+		if ( isFunction( func ) ) {
 
 			// For each dataType in the dataTypeExpression
 			while ( ( dataType = dataTypes[ i++ ] ) ) {
@@ -9016,7 +9049,7 @@ jQuery.extend( {
 		if ( s.crossDomain == null ) {
 			urlAnchor = document.createElement( "a" );
 
-			// Support: IE <=8 - 11, Edge 12 - 13
+			// Support: IE <=8 - 11, Edge 12 - 15
 			// IE throws exception on accessing the href property if url is malformed,
 			// e.g. http://example.com:80x/
 			try {
@@ -9074,8 +9107,8 @@ jQuery.extend( {
 			// Remember the hash so we can put it back
 			uncached = s.url.slice( cacheURL.length );
 
-			// If data is available, append data to url
-			if ( s.data ) {
+			// If data is available and should be processed, append data to url
+			if ( s.data && ( s.processData || typeof s.data === "string" ) ) {
 				cacheURL += ( rquery.test( cacheURL ) ? "&" : "?" ) + s.data;
 
 				// #9682: remove data so that it's not used in an eventual retry
@@ -9312,7 +9345,7 @@ jQuery.each( [ "get", "post" ], function( i, method ) {
 	jQuery[ method ] = function( url, data, callback, type ) {
 
 		// Shift arguments if data argument was omitted
-		if ( jQuery.isFunction( data ) ) {
+		if ( isFunction( data ) ) {
 			type = type || callback;
 			callback = data;
 			data = undefined;
@@ -9350,7 +9383,7 @@ jQuery.fn.extend( {
 		var wrap;
 
 		if ( this[ 0 ] ) {
-			if ( jQuery.isFunction( html ) ) {
+			if ( isFunction( html ) ) {
 				html = html.call( this[ 0 ] );
 			}
 
@@ -9376,7 +9409,7 @@ jQuery.fn.extend( {
 	},
 
 	wrapInner: function( html ) {
-		if ( jQuery.isFunction( html ) ) {
+		if ( isFunction( html ) ) {
 			return this.each( function( i ) {
 				jQuery( this ).wrapInner( html.call( this, i ) );
 			} );
@@ -9396,10 +9429,10 @@ jQuery.fn.extend( {
 	},
 
 	wrap: function( html ) {
-		var isFunction = jQuery.isFunction( html );
+		var htmlIsFunction = isFunction( html );
 
 		return this.each( function( i ) {
-			jQuery( this ).wrapAll( isFunction ? html.call( this, i ) : html );
+			jQuery( this ).wrapAll( htmlIsFunction ? html.call( this, i ) : html );
 		} );
 	},
 
@@ -9491,7 +9524,8 @@ jQuery.ajaxTransport( function( options ) {
 					return function() {
 						if ( callback ) {
 							callback = errorCallback = xhr.onload =
-								xhr.onerror = xhr.onabort = xhr.onreadystatechange = null;
+								xhr.onerror = xhr.onabort = xhr.ontimeout =
+									xhr.onreadystatechange = null;
 
 							if ( type === "abort" ) {
 								xhr.abort();
@@ -9531,7 +9565,7 @@ jQuery.ajaxTransport( function( options ) {
 
 				// Listen to events
 				xhr.onload = callback();
-				errorCallback = xhr.onerror = callback( "error" );
+				errorCallback = xhr.onerror = xhr.ontimeout = callback( "error" );
 
 				// Support: IE 9 only
 				// Use onreadystatechange to replace onabort
@@ -9685,7 +9719,7 @@ jQuery.ajaxPrefilter( "json jsonp", function( s, originalSettings, jqXHR ) {
 	if ( jsonProp || s.dataTypes[ 0 ] === "jsonp" ) {
 
 		// Get callback name, remembering preexisting value associated with it
-		callbackName = s.jsonpCallback = jQuery.isFunction( s.jsonpCallback ) ?
+		callbackName = s.jsonpCallback = isFunction( s.jsonpCallback ) ?
 			s.jsonpCallback() :
 			s.jsonpCallback;
 
@@ -9736,7 +9770,7 @@ jQuery.ajaxPrefilter( "json jsonp", function( s, originalSettings, jqXHR ) {
 			}
 
 			// Call if it was a function and we have a response
-			if ( responseContainer && jQuery.isFunction( overwritten ) ) {
+			if ( responseContainer && isFunction( overwritten ) ) {
 				overwritten( responseContainer[ 0 ] );
 			}
 
@@ -9828,7 +9862,7 @@ jQuery.fn.load = function( url, params, callback ) {
 	}
 
 	// If it's a function
-	if ( jQuery.isFunction( params ) ) {
+	if ( isFunction( params ) ) {
 
 		// We assume that it's the callback
 		callback = params;
@@ -9936,7 +9970,7 @@ jQuery.offset = {
 			curLeft = parseFloat( curCSSLeft ) || 0;
 		}
 
-		if ( jQuery.isFunction( options ) ) {
+		if ( isFunction( options ) ) {
 
 			// Use jQuery.extend here to allow modification of coordinates argument (gh-1848)
 			options = options.call( elem, i, jQuery.extend( {}, curOffset ) );
@@ -9959,6 +9993,8 @@ jQuery.offset = {
 };
 
 jQuery.fn.extend( {
+
+	// offset() relates an element's border box to the document origin
 	offset: function( options ) {
 
 		// Preserve chaining for setter
@@ -9970,7 +10006,7 @@ jQuery.fn.extend( {
 				} );
 		}
 
-		var doc, docElem, rect, win,
+		var rect, win,
 			elem = this[ 0 ];
 
 		if ( !elem ) {
@@ -9985,50 +10021,52 @@ jQuery.fn.extend( {
 			return { top: 0, left: 0 };
 		}
 
+		// Get document-relative position by adding viewport scroll to viewport-relative gBCR
 		rect = elem.getBoundingClientRect();
-
-		doc = elem.ownerDocument;
-		docElem = doc.documentElement;
-		win = doc.defaultView;
-
+		win = elem.ownerDocument.defaultView;
 		return {
-			top: rect.top + win.pageYOffset - docElem.clientTop,
-			left: rect.left + win.pageXOffset - docElem.clientLeft
+			top: rect.top + win.pageYOffset,
+			left: rect.left + win.pageXOffset
 		};
 	},
 
+	// position() relates an element's margin box to its offset parent's padding box
+	// This corresponds to the behavior of CSS absolute positioning
 	position: function() {
 		if ( !this[ 0 ] ) {
 			return;
 		}
 
-		var offsetParent, offset,
+		var offsetParent, offset, doc,
 			elem = this[ 0 ],
 			parentOffset = { top: 0, left: 0 };
 
-		// Fixed elements are offset from window (parentOffset = {top:0, left: 0},
-		// because it is its only offset parent
+		// position:fixed elements are offset from the viewport, which itself always has zero offset
 		if ( jQuery.css( elem, "position" ) === "fixed" ) {
 
-			// Assume getBoundingClientRect is there when computed position is fixed
+			// Assume position:fixed implies availability of getBoundingClientRect
 			offset = elem.getBoundingClientRect();
 
 		} else {
-
-			// Get *real* offsetParent
-			offsetParent = this.offsetParent();
-
-			// Get correct offsets
 			offset = this.offset();
-			if ( !nodeName( offsetParent[ 0 ], "html" ) ) {
-				parentOffset = offsetParent.offset();
-			}
 
-			// Add offsetParent borders
-			parentOffset = {
-				top: parentOffset.top + jQuery.css( offsetParent[ 0 ], "borderTopWidth", true ),
-				left: parentOffset.left + jQuery.css( offsetParent[ 0 ], "borderLeftWidth", true )
-			};
+			// Account for the *real* offset parent, which can be the document or its root element
+			// when a statically positioned element is identified
+			doc = elem.ownerDocument;
+			offsetParent = elem.offsetParent || doc.documentElement;
+			while ( offsetParent &&
+				( offsetParent === doc.body || offsetParent === doc.documentElement ) &&
+				jQuery.css( offsetParent, "position" ) === "static" ) {
+
+				offsetParent = offsetParent.parentNode;
+			}
+			if ( offsetParent && offsetParent !== elem && offsetParent.nodeType === 1 ) {
+
+				// Incorporate borders into its offset, since they are outside its content origin
+				parentOffset = jQuery( offsetParent ).offset();
+				parentOffset.top += jQuery.css( offsetParent, "borderTopWidth", true );
+				parentOffset.left += jQuery.css( offsetParent, "borderLeftWidth", true );
+			}
 		}
 
 		// Subtract parent offsets and element margins
@@ -10070,7 +10108,7 @@ jQuery.each( { scrollLeft: "pageXOffset", scrollTop: "pageYOffset" }, function( 
 
 			// Coalesce documents and windows
 			var win;
-			if ( jQuery.isWindow( elem ) ) {
+			if ( isWindow( elem ) ) {
 				win = elem;
 			} else if ( elem.nodeType === 9 ) {
 				win = elem.defaultView;
@@ -10128,7 +10166,7 @@ jQuery.each( { Height: "height", Width: "width" }, function( name, type ) {
 			return access( this, function( elem, type, value ) {
 				var doc;
 
-				if ( jQuery.isWindow( elem ) ) {
+				if ( isWindow( elem ) ) {
 
 					// $( window ).outerWidth/Height return w/h including scrollbars (gh-1729)
 					return funcName.indexOf( "outer" ) === 0 ?
@@ -10162,6 +10200,28 @@ jQuery.each( { Height: "height", Width: "width" }, function( name, type ) {
 } );
 
 
+jQuery.each( ( "blur focus focusin focusout resize scroll click dblclick " +
+	"mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave " +
+	"change select submit keydown keypress keyup contextmenu" ).split( " " ),
+	function( i, name ) {
+
+	// Handle event binding
+	jQuery.fn[ name ] = function( data, fn ) {
+		return arguments.length > 0 ?
+			this.on( name, null, data, fn ) :
+			this.trigger( name );
+	};
+} );
+
+jQuery.fn.extend( {
+	hover: function( fnOver, fnOut ) {
+		return this.mouseenter( fnOver ).mouseleave( fnOut || fnOver );
+	}
+} );
+
+
+
+
 jQuery.fn.extend( {
 
 	bind: function( types, data, fn ) {
@@ -10183,6 +10243,37 @@ jQuery.fn.extend( {
 	}
 } );
 
+// Bind a function to a context, optionally partially applying any
+// arguments.
+// jQuery.proxy is deprecated to promote standards (specifically Function#bind)
+// However, it is not slated for removal any time soon
+jQuery.proxy = function( fn, context ) {
+	var tmp, args, proxy;
+
+	if ( typeof context === "string" ) {
+		tmp = fn[ context ];
+		context = fn;
+		fn = tmp;
+	}
+
+	// Quick check to determine if target is callable, in the spec
+	// this throws a TypeError, but we will just return undefined.
+	if ( !isFunction( fn ) ) {
+		return undefined;
+	}
+
+	// Simulated bind
+	args = slice.call( arguments, 2 );
+	proxy = function() {
+		return fn.apply( context || this, args.concat( slice.call( arguments ) ) );
+	};
+
+	// Set the guid of unique handler to the same of original handler, so it can be removed
+	proxy.guid = fn.guid = fn.guid || jQuery.guid++;
+
+	return proxy;
+};
+
 jQuery.holdReady = function( hold ) {
 	if ( hold ) {
 		jQuery.readyWait++;
@@ -10193,6 +10284,26 @@ jQuery.holdReady = function( hold ) {
 jQuery.isArray = Array.isArray;
 jQuery.parseJSON = JSON.parse;
 jQuery.nodeName = nodeName;
+jQuery.isFunction = isFunction;
+jQuery.isWindow = isWindow;
+jQuery.camelCase = camelCase;
+jQuery.type = toType;
+
+jQuery.now = Date.now;
+
+jQuery.isNumeric = function( obj ) {
+
+	// As of jQuery 3.0, isNumeric is limited to
+	// strings and numbers (primitives or objects)
+	// that can be coerced to finite numbers (gh-2662)
+	var type = jQuery.type( obj );
+	return ( type === "number" || type === "string" ) &&
+
+		// parseFloat NaNs numeric-cast false positives ("")
+		// ...but misinterprets leading-number strings, particularly hex literals ("0x...")
+		// subtraction forces infinities to NaN
+		!isNaN( obj - parseFloat( obj ) );
+};
 
 
 
@@ -10251,3 +10362,10256 @@ if ( !noGlobal ) {
 
 return jQuery;
 } );
+
+!function(i){"use strict";"function"==typeof define&&define.amd?define(["jquery"],i):"undefined"!=typeof exports?module.exports=i(require("jquery")):i(jQuery)}(function(i){"use strict";var e=window.Slick||{};(e=function(){var e=0;return function(t,o){var s,n=this;n.defaults={accessibility:!0,adaptiveHeight:!1,appendArrows:i(t),appendDots:i(t),arrows:!0,asNavFor:null,prevArrow:'<button class="slick-prev" aria-label="Previous" type="button">Previous</button>',nextArrow:'<button class="slick-next" aria-label="Next" type="button">Next</button>',autoplay:!1,autoplaySpeed:3e3,centerMode:!1,centerPadding:"50px",cssEase:"ease",customPaging:function(e,t){return i('<button type="button" />').text(t+1)},dots:!1,dotsClass:"slick-dots",draggable:!0,easing:"linear",edgeFriction:.35,fade:!1,focusOnSelect:!1,focusOnChange:!1,infinite:!0,initialSlide:0,lazyLoad:"ondemand",mobileFirst:!1,pauseOnHover:!0,pauseOnFocus:!0,pauseOnDotsHover:!1,respondTo:"window",responsive:null,rows:1,rtl:!1,slide:"",slidesPerRow:1,slidesToShow:1,slidesToScroll:1,speed:500,swipe:!0,swipeToSlide:!1,touchMove:!0,touchThreshold:5,useCSS:!0,useTransform:!0,variableWidth:!1,vertical:!1,verticalSwiping:!1,waitForAnimate:!0,zIndex:1e3},n.initials={animating:!1,dragging:!1,autoPlayTimer:null,currentDirection:0,currentLeft:null,currentSlide:0,direction:1,$dots:null,listWidth:null,listHeight:null,loadIndex:0,$nextArrow:null,$prevArrow:null,scrolling:!1,slideCount:null,slideWidth:null,$slideTrack:null,$slides:null,sliding:!1,slideOffset:0,swipeLeft:null,swiping:!1,$list:null,touchObject:{},transformsEnabled:!1,unslicked:!1},i.extend(n,n.initials),n.activeBreakpoint=null,n.animType=null,n.animProp=null,n.breakpoints=[],n.breakpointSettings=[],n.cssTransitions=!1,n.focussed=!1,n.interrupted=!1,n.hidden="hidden",n.paused=!0,n.positionProp=null,n.respondTo=null,n.rowCount=1,n.shouldClick=!0,n.$slider=i(t),n.$slidesCache=null,n.transformType=null,n.transitionType=null,n.visibilityChange="visibilitychange",n.windowWidth=0,n.windowTimer=null,s=i(t).data("slick")||{},n.options=i.extend({},n.defaults,o,s),n.currentSlide=n.options.initialSlide,n.originalSettings=n.options,void 0!==document.mozHidden?(n.hidden="mozHidden",n.visibilityChange="mozvisibilitychange"):void 0!==document.webkitHidden&&(n.hidden="webkitHidden",n.visibilityChange="webkitvisibilitychange"),n.autoPlay=i.proxy(n.autoPlay,n),n.autoPlayClear=i.proxy(n.autoPlayClear,n),n.autoPlayIterator=i.proxy(n.autoPlayIterator,n),n.changeSlide=i.proxy(n.changeSlide,n),n.clickHandler=i.proxy(n.clickHandler,n),n.selectHandler=i.proxy(n.selectHandler,n),n.setPosition=i.proxy(n.setPosition,n),n.swipeHandler=i.proxy(n.swipeHandler,n),n.dragHandler=i.proxy(n.dragHandler,n),n.keyHandler=i.proxy(n.keyHandler,n),n.instanceUid=e++,n.htmlExpr=/^(?:\s*(<[\w\W]+>)[^>]*)$/,n.registerBreakpoints(),n.init(!0)}}()).prototype.activateADA=function(){this.$slideTrack.find(".slick-active").attr({"aria-hidden":"false"}).find("a, input, button, select").attr({tabindex:"0"})},e.prototype.addSlide=e.prototype.slickAdd=function(e,t,o){var s=this;if("boolean"==typeof t)o=t,t=null;else if(t<0||t>=s.slideCount)return!1;s.unload(),"number"==typeof t?0===t&&0===s.$slides.length?i(e).appendTo(s.$slideTrack):o?i(e).insertBefore(s.$slides.eq(t)):i(e).insertAfter(s.$slides.eq(t)):!0===o?i(e).prependTo(s.$slideTrack):i(e).appendTo(s.$slideTrack),s.$slides=s.$slideTrack.children(this.options.slide),s.$slideTrack.children(this.options.slide).detach(),s.$slideTrack.append(s.$slides),s.$slides.each(function(e,t){i(t).attr("data-slick-index",e)}),s.$slidesCache=s.$slides,s.reinit()},e.prototype.animateHeight=function(){var i=this;if(1===i.options.slidesToShow&&!0===i.options.adaptiveHeight&&!1===i.options.vertical){var e=i.$slides.eq(i.currentSlide).outerHeight(!0);i.$list.animate({height:e},i.options.speed)}},e.prototype.animateSlide=function(e,t){var o={},s=this;s.animateHeight(),!0===s.options.rtl&&!1===s.options.vertical&&(e=-e),!1===s.transformsEnabled?!1===s.options.vertical?s.$slideTrack.animate({left:e},s.options.speed,s.options.easing,t):s.$slideTrack.animate({top:e},s.options.speed,s.options.easing,t):!1===s.cssTransitions?(!0===s.options.rtl&&(s.currentLeft=-s.currentLeft),i({animStart:s.currentLeft}).animate({animStart:e},{duration:s.options.speed,easing:s.options.easing,step:function(i){i=Math.ceil(i),!1===s.options.vertical?(o[s.animType]="translate("+i+"px, 0px)",s.$slideTrack.css(o)):(o[s.animType]="translate(0px,"+i+"px)",s.$slideTrack.css(o))},complete:function(){t&&t.call()}})):(s.applyTransition(),e=Math.ceil(e),!1===s.options.vertical?o[s.animType]="translate3d("+e+"px, 0px, 0px)":o[s.animType]="translate3d(0px,"+e+"px, 0px)",s.$slideTrack.css(o),t&&setTimeout(function(){s.disableTransition(),t.call()},s.options.speed))},e.prototype.getNavTarget=function(){var e=this,t=e.options.asNavFor;return t&&null!==t&&(t=i(t).not(e.$slider)),t},e.prototype.asNavFor=function(e){var t=this.getNavTarget();null!==t&&"object"==typeof t&&t.each(function(){var t=i(this).slick("getSlick");t.unslicked||t.slideHandler(e,!0)})},e.prototype.applyTransition=function(i){var e=this,t={};!1===e.options.fade?t[e.transitionType]=e.transformType+" "+e.options.speed+"ms "+e.options.cssEase:t[e.transitionType]="opacity "+e.options.speed+"ms "+e.options.cssEase,!1===e.options.fade?e.$slideTrack.css(t):e.$slides.eq(i).css(t)},e.prototype.autoPlay=function(){var i=this;i.autoPlayClear(),i.slideCount>i.options.slidesToShow&&(i.autoPlayTimer=setInterval(i.autoPlayIterator,i.options.autoplaySpeed))},e.prototype.autoPlayClear=function(){var i=this;i.autoPlayTimer&&clearInterval(i.autoPlayTimer)},e.prototype.autoPlayIterator=function(){var i=this,e=i.currentSlide+i.options.slidesToScroll;i.paused||i.interrupted||i.focussed||(!1===i.options.infinite&&(1===i.direction&&i.currentSlide+1===i.slideCount-1?i.direction=0:0===i.direction&&(e=i.currentSlide-i.options.slidesToScroll,i.currentSlide-1==0&&(i.direction=1))),i.slideHandler(e))},e.prototype.buildArrows=function(){var e=this;!0===e.options.arrows&&(e.$prevArrow=i(e.options.prevArrow).addClass("slick-arrow"),e.$nextArrow=i(e.options.nextArrow).addClass("slick-arrow"),e.slideCount>e.options.slidesToShow?(e.$prevArrow.removeClass("slick-hidden").removeAttr("aria-hidden tabindex"),e.$nextArrow.removeClass("slick-hidden").removeAttr("aria-hidden tabindex"),e.htmlExpr.test(e.options.prevArrow)&&e.$prevArrow.prependTo(e.options.appendArrows),e.htmlExpr.test(e.options.nextArrow)&&e.$nextArrow.appendTo(e.options.appendArrows),!0!==e.options.infinite&&e.$prevArrow.addClass("slick-disabled").attr("aria-disabled","true")):e.$prevArrow.add(e.$nextArrow).addClass("slick-hidden").attr({"aria-disabled":"true",tabindex:"-1"}))},e.prototype.buildDots=function(){var e,t,o=this;if(!0===o.options.dots){for(o.$slider.addClass("slick-dotted"),t=i("<ul />").addClass(o.options.dotsClass),e=0;e<=o.getDotCount();e+=1)t.append(i("<li />").append(o.options.customPaging.call(this,o,e)));o.$dots=t.appendTo(o.options.appendDots),o.$dots.find("li").first().addClass("slick-active")}},e.prototype.buildOut=function(){var e=this;e.$slides=e.$slider.children(e.options.slide+":not(.slick-cloned)").addClass("slick-slide"),e.slideCount=e.$slides.length,e.$slides.each(function(e,t){i(t).attr("data-slick-index",e).data("originalStyling",i(t).attr("style")||"")}),e.$slider.addClass("slick-slider"),e.$slideTrack=0===e.slideCount?i('<div class="slick-track"/>').appendTo(e.$slider):e.$slides.wrapAll('<div class="slick-track"/>').parent(),e.$list=e.$slideTrack.wrap('<div class="slick-list"/>').parent(),e.$slideTrack.css("opacity",0),!0!==e.options.centerMode&&!0!==e.options.swipeToSlide||(e.options.slidesToScroll=1),i("img[data-lazy]",e.$slider).not("[src]").addClass("slick-loading"),e.setupInfinite(),e.buildArrows(),e.buildDots(),e.updateDots(),e.setSlideClasses("number"==typeof e.currentSlide?e.currentSlide:0),!0===e.options.draggable&&e.$list.addClass("draggable")},e.prototype.buildRows=function(){var i,e,t,o,s,n,r,l=this;if(o=document.createDocumentFragment(),n=l.$slider.children(),l.options.rows>1){for(r=l.options.slidesPerRow*l.options.rows,s=Math.ceil(n.length/r),i=0;i<s;i++){var d=document.createElement("div");for(e=0;e<l.options.rows;e++){var a=document.createElement("div");for(t=0;t<l.options.slidesPerRow;t++){var c=i*r+(e*l.options.slidesPerRow+t);n.get(c)&&a.appendChild(n.get(c))}d.appendChild(a)}o.appendChild(d)}l.$slider.empty().append(o),l.$slider.children().children().children().css({width:100/l.options.slidesPerRow+"%",display:"inline-block"})}},e.prototype.checkResponsive=function(e,t){var o,s,n,r=this,l=!1,d=r.$slider.width(),a=window.innerWidth||i(window).width();if("window"===r.respondTo?n=a:"slider"===r.respondTo?n=d:"min"===r.respondTo&&(n=Math.min(a,d)),r.options.responsive&&r.options.responsive.length&&null!==r.options.responsive){s=null;for(o in r.breakpoints)r.breakpoints.hasOwnProperty(o)&&(!1===r.originalSettings.mobileFirst?n<r.breakpoints[o]&&(s=r.breakpoints[o]):n>r.breakpoints[o]&&(s=r.breakpoints[o]));null!==s?null!==r.activeBreakpoint?(s!==r.activeBreakpoint||t)&&(r.activeBreakpoint=s,"unslick"===r.breakpointSettings[s]?r.unslick(s):(r.options=i.extend({},r.originalSettings,r.breakpointSettings[s]),!0===e&&(r.currentSlide=r.options.initialSlide),r.refresh(e)),l=s):(r.activeBreakpoint=s,"unslick"===r.breakpointSettings[s]?r.unslick(s):(r.options=i.extend({},r.originalSettings,r.breakpointSettings[s]),!0===e&&(r.currentSlide=r.options.initialSlide),r.refresh(e)),l=s):null!==r.activeBreakpoint&&(r.activeBreakpoint=null,r.options=r.originalSettings,!0===e&&(r.currentSlide=r.options.initialSlide),r.refresh(e),l=s),e||!1===l||r.$slider.trigger("breakpoint",[r,l])}},e.prototype.changeSlide=function(e,t){var o,s,n,r=this,l=i(e.currentTarget);switch(l.is("a")&&e.preventDefault(),l.is("li")||(l=l.closest("li")),n=r.slideCount%r.options.slidesToScroll!=0,o=n?0:(r.slideCount-r.currentSlide)%r.options.slidesToScroll,e.data.message){case"previous":s=0===o?r.options.slidesToScroll:r.options.slidesToShow-o,r.slideCount>r.options.slidesToShow&&r.slideHandler(r.currentSlide-s,!1,t);break;case"next":s=0===o?r.options.slidesToScroll:o,r.slideCount>r.options.slidesToShow&&r.slideHandler(r.currentSlide+s,!1,t);break;case"index":var d=0===e.data.index?0:e.data.index||l.index()*r.options.slidesToScroll;r.slideHandler(r.checkNavigable(d),!1,t),l.children().trigger("focus");break;default:return}},e.prototype.checkNavigable=function(i){var e,t;if(e=this.getNavigableIndexes(),t=0,i>e[e.length-1])i=e[e.length-1];else for(var o in e){if(i<e[o]){i=t;break}t=e[o]}return i},e.prototype.cleanUpEvents=function(){var e=this;e.options.dots&&null!==e.$dots&&(i("li",e.$dots).off("click.slick",e.changeSlide).off("mouseenter.slick",i.proxy(e.interrupt,e,!0)).off("mouseleave.slick",i.proxy(e.interrupt,e,!1)),!0===e.options.accessibility&&e.$dots.off("keydown.slick",e.keyHandler)),e.$slider.off("focus.slick blur.slick"),!0===e.options.arrows&&e.slideCount>e.options.slidesToShow&&(e.$prevArrow&&e.$prevArrow.off("click.slick",e.changeSlide),e.$nextArrow&&e.$nextArrow.off("click.slick",e.changeSlide),!0===e.options.accessibility&&(e.$prevArrow&&e.$prevArrow.off("keydown.slick",e.keyHandler),e.$nextArrow&&e.$nextArrow.off("keydown.slick",e.keyHandler))),e.$list.off("touchstart.slick mousedown.slick",e.swipeHandler),e.$list.off("touchmove.slick mousemove.slick",e.swipeHandler),e.$list.off("touchend.slick mouseup.slick",e.swipeHandler),e.$list.off("touchcancel.slick mouseleave.slick",e.swipeHandler),e.$list.off("click.slick",e.clickHandler),i(document).off(e.visibilityChange,e.visibility),e.cleanUpSlideEvents(),!0===e.options.accessibility&&e.$list.off("keydown.slick",e.keyHandler),!0===e.options.focusOnSelect&&i(e.$slideTrack).children().off("click.slick",e.selectHandler),i(window).off("orientationchange.slick.slick-"+e.instanceUid,e.orientationChange),i(window).off("resize.slick.slick-"+e.instanceUid,e.resize),i("[draggable!=true]",e.$slideTrack).off("dragstart",e.preventDefault),i(window).off("load.slick.slick-"+e.instanceUid,e.setPosition)},e.prototype.cleanUpSlideEvents=function(){var e=this;e.$list.off("mouseenter.slick",i.proxy(e.interrupt,e,!0)),e.$list.off("mouseleave.slick",i.proxy(e.interrupt,e,!1))},e.prototype.cleanUpRows=function(){var i,e=this;e.options.rows>1&&((i=e.$slides.children().children()).removeAttr("style"),e.$slider.empty().append(i))},e.prototype.clickHandler=function(i){!1===this.shouldClick&&(i.stopImmediatePropagation(),i.stopPropagation(),i.preventDefault())},e.prototype.destroy=function(e){var t=this;t.autoPlayClear(),t.touchObject={},t.cleanUpEvents(),i(".slick-cloned",t.$slider).detach(),t.$dots&&t.$dots.remove(),t.$prevArrow&&t.$prevArrow.length&&(t.$prevArrow.removeClass("slick-disabled slick-arrow slick-hidden").removeAttr("aria-hidden aria-disabled tabindex").css("display",""),t.htmlExpr.test(t.options.prevArrow)&&t.$prevArrow.remove()),t.$nextArrow&&t.$nextArrow.length&&(t.$nextArrow.removeClass("slick-disabled slick-arrow slick-hidden").removeAttr("aria-hidden aria-disabled tabindex").css("display",""),t.htmlExpr.test(t.options.nextArrow)&&t.$nextArrow.remove()),t.$slides&&(t.$slides.removeClass("slick-slide slick-active slick-center slick-visible slick-current").removeAttr("aria-hidden").removeAttr("data-slick-index").each(function(){i(this).attr("style",i(this).data("originalStyling"))}),t.$slideTrack.children(this.options.slide).detach(),t.$slideTrack.detach(),t.$list.detach(),t.$slider.append(t.$slides)),t.cleanUpRows(),t.$slider.removeClass("slick-slider"),t.$slider.removeClass("slick-initialized"),t.$slider.removeClass("slick-dotted"),t.unslicked=!0,e||t.$slider.trigger("destroy",[t])},e.prototype.disableTransition=function(i){var e=this,t={};t[e.transitionType]="",!1===e.options.fade?e.$slideTrack.css(t):e.$slides.eq(i).css(t)},e.prototype.fadeSlide=function(i,e){var t=this;!1===t.cssTransitions?(t.$slides.eq(i).css({zIndex:t.options.zIndex}),t.$slides.eq(i).animate({opacity:1},t.options.speed,t.options.easing,e)):(t.applyTransition(i),t.$slides.eq(i).css({opacity:1,zIndex:t.options.zIndex}),e&&setTimeout(function(){t.disableTransition(i),e.call()},t.options.speed))},e.prototype.fadeSlideOut=function(i){var e=this;!1===e.cssTransitions?e.$slides.eq(i).animate({opacity:0,zIndex:e.options.zIndex-2},e.options.speed,e.options.easing):(e.applyTransition(i),e.$slides.eq(i).css({opacity:0,zIndex:e.options.zIndex-2}))},e.prototype.filterSlides=e.prototype.slickFilter=function(i){var e=this;null!==i&&(e.$slidesCache=e.$slides,e.unload(),e.$slideTrack.children(this.options.slide).detach(),e.$slidesCache.filter(i).appendTo(e.$slideTrack),e.reinit())},e.prototype.focusHandler=function(){var e=this;e.$slider.off("focus.slick blur.slick").on("focus.slick blur.slick","*",function(t){t.stopImmediatePropagation();var o=i(this);setTimeout(function(){e.options.pauseOnFocus&&(e.focussed=o.is(":focus"),e.autoPlay())},0)})},e.prototype.getCurrent=e.prototype.slickCurrentSlide=function(){return this.currentSlide},e.prototype.getDotCount=function(){var i=this,e=0,t=0,o=0;if(!0===i.options.infinite)if(i.slideCount<=i.options.slidesToShow)++o;else for(;e<i.slideCount;)++o,e=t+i.options.slidesToScroll,t+=i.options.slidesToScroll<=i.options.slidesToShow?i.options.slidesToScroll:i.options.slidesToShow;else if(!0===i.options.centerMode)o=i.slideCount;else if(i.options.asNavFor)for(;e<i.slideCount;)++o,e=t+i.options.slidesToScroll,t+=i.options.slidesToScroll<=i.options.slidesToShow?i.options.slidesToScroll:i.options.slidesToShow;else o=1+Math.ceil((i.slideCount-i.options.slidesToShow)/i.options.slidesToScroll);return o-1},e.prototype.getLeft=function(i){var e,t,o,s,n=this,r=0;return n.slideOffset=0,t=n.$slides.first().outerHeight(!0),!0===n.options.infinite?(n.slideCount>n.options.slidesToShow&&(n.slideOffset=n.slideWidth*n.options.slidesToShow*-1,s=-1,!0===n.options.vertical&&!0===n.options.centerMode&&(2===n.options.slidesToShow?s=-1.5:1===n.options.slidesToShow&&(s=-2)),r=t*n.options.slidesToShow*s),n.slideCount%n.options.slidesToScroll!=0&&i+n.options.slidesToScroll>n.slideCount&&n.slideCount>n.options.slidesToShow&&(i>n.slideCount?(n.slideOffset=(n.options.slidesToShow-(i-n.slideCount))*n.slideWidth*-1,r=(n.options.slidesToShow-(i-n.slideCount))*t*-1):(n.slideOffset=n.slideCount%n.options.slidesToScroll*n.slideWidth*-1,r=n.slideCount%n.options.slidesToScroll*t*-1))):i+n.options.slidesToShow>n.slideCount&&(n.slideOffset=(i+n.options.slidesToShow-n.slideCount)*n.slideWidth,r=(i+n.options.slidesToShow-n.slideCount)*t),n.slideCount<=n.options.slidesToShow&&(n.slideOffset=0,r=0),!0===n.options.centerMode&&n.slideCount<=n.options.slidesToShow?n.slideOffset=n.slideWidth*Math.floor(n.options.slidesToShow)/2-n.slideWidth*n.slideCount/2:!0===n.options.centerMode&&!0===n.options.infinite?n.slideOffset+=n.slideWidth*Math.floor(n.options.slidesToShow/2)-n.slideWidth:!0===n.options.centerMode&&(n.slideOffset=0,n.slideOffset+=n.slideWidth*Math.floor(n.options.slidesToShow/2)),e=!1===n.options.vertical?i*n.slideWidth*-1+n.slideOffset:i*t*-1+r,!0===n.options.variableWidth&&(o=n.slideCount<=n.options.slidesToShow||!1===n.options.infinite?n.$slideTrack.children(".slick-slide").eq(i):n.$slideTrack.children(".slick-slide").eq(i+n.options.slidesToShow),e=!0===n.options.rtl?o[0]?-1*(n.$slideTrack.width()-o[0].offsetLeft-o.width()):0:o[0]?-1*o[0].offsetLeft:0,!0===n.options.centerMode&&(o=n.slideCount<=n.options.slidesToShow||!1===n.options.infinite?n.$slideTrack.children(".slick-slide").eq(i):n.$slideTrack.children(".slick-slide").eq(i+n.options.slidesToShow+1),e=!0===n.options.rtl?o[0]?-1*(n.$slideTrack.width()-o[0].offsetLeft-o.width()):0:o[0]?-1*o[0].offsetLeft:0,e+=(n.$list.width()-o.outerWidth())/2)),e},e.prototype.getOption=e.prototype.slickGetOption=function(i){return this.options[i]},e.prototype.getNavigableIndexes=function(){var i,e=this,t=0,o=0,s=[];for(!1===e.options.infinite?i=e.slideCount:(t=-1*e.options.slidesToScroll,o=-1*e.options.slidesToScroll,i=2*e.slideCount);t<i;)s.push(t),t=o+e.options.slidesToScroll,o+=e.options.slidesToScroll<=e.options.slidesToShow?e.options.slidesToScroll:e.options.slidesToShow;return s},e.prototype.getSlick=function(){return this},e.prototype.getSlideCount=function(){var e,t,o=this;return t=!0===o.options.centerMode?o.slideWidth*Math.floor(o.options.slidesToShow/2):0,!0===o.options.swipeToSlide?(o.$slideTrack.find(".slick-slide").each(function(s,n){if(n.offsetLeft-t+i(n).outerWidth()/2>-1*o.swipeLeft)return e=n,!1}),Math.abs(i(e).attr("data-slick-index")-o.currentSlide)||1):o.options.slidesToScroll},e.prototype.goTo=e.prototype.slickGoTo=function(i,e){this.changeSlide({data:{message:"index",index:parseInt(i)}},e)},e.prototype.init=function(e){var t=this;i(t.$slider).hasClass("slick-initialized")||(i(t.$slider).addClass("slick-initialized"),t.buildRows(),t.buildOut(),t.setProps(),t.startLoad(),t.loadSlider(),t.initializeEvents(),t.updateArrows(),t.updateDots(),t.checkResponsive(!0),t.focusHandler()),e&&t.$slider.trigger("init",[t]),!0===t.options.accessibility&&t.initADA(),t.options.autoplay&&(t.paused=!1,t.autoPlay())},e.prototype.initADA=function(){var e=this,t=Math.ceil(e.slideCount/e.options.slidesToShow),o=e.getNavigableIndexes().filter(function(i){return i>=0&&i<e.slideCount});e.$slides.add(e.$slideTrack.find(".slick-cloned")).attr({"aria-hidden":"true",tabindex:"-1"}).find("a, input, button, select").attr({tabindex:"-1"}),null!==e.$dots&&(e.$slides.not(e.$slideTrack.find(".slick-cloned")).each(function(t){var s=o.indexOf(t);i(this).attr({role:"tabpanel",id:"slick-slide"+e.instanceUid+t,tabindex:-1}),-1!==s&&i(this).attr({"aria-describedby":"slick-slide-control"+e.instanceUid+s})}),e.$dots.attr("role","tablist").find("li").each(function(s){var n=o[s];i(this).attr({role:"presentation"}),i(this).find("button").first().attr({role:"tab",id:"slick-slide-control"+e.instanceUid+s,"aria-controls":"slick-slide"+e.instanceUid+n,"aria-label":s+1+" of "+t,"aria-selected":null,tabindex:"-1"})}).eq(e.currentSlide).find("button").attr({"aria-selected":"true",tabindex:"0"}).end());for(var s=e.currentSlide,n=s+e.options.slidesToShow;s<n;s++)e.$slides.eq(s).attr("tabindex",0);e.activateADA()},e.prototype.initArrowEvents=function(){var i=this;!0===i.options.arrows&&i.slideCount>i.options.slidesToShow&&(i.$prevArrow.off("click.slick").on("click.slick",{message:"previous"},i.changeSlide),i.$nextArrow.off("click.slick").on("click.slick",{message:"next"},i.changeSlide),!0===i.options.accessibility&&(i.$prevArrow.on("keydown.slick",i.keyHandler),i.$nextArrow.on("keydown.slick",i.keyHandler)))},e.prototype.initDotEvents=function(){var e=this;!0===e.options.dots&&(i("li",e.$dots).on("click.slick",{message:"index"},e.changeSlide),!0===e.options.accessibility&&e.$dots.on("keydown.slick",e.keyHandler)),!0===e.options.dots&&!0===e.options.pauseOnDotsHover&&i("li",e.$dots).on("mouseenter.slick",i.proxy(e.interrupt,e,!0)).on("mouseleave.slick",i.proxy(e.interrupt,e,!1))},e.prototype.initSlideEvents=function(){var e=this;e.options.pauseOnHover&&(e.$list.on("mouseenter.slick",i.proxy(e.interrupt,e,!0)),e.$list.on("mouseleave.slick",i.proxy(e.interrupt,e,!1)))},e.prototype.initializeEvents=function(){var e=this;e.initArrowEvents(),e.initDotEvents(),e.initSlideEvents(),e.$list.on("touchstart.slick mousedown.slick",{action:"start"},e.swipeHandler),e.$list.on("touchmove.slick mousemove.slick",{action:"move"},e.swipeHandler),e.$list.on("touchend.slick mouseup.slick",{action:"end"},e.swipeHandler),e.$list.on("touchcancel.slick mouseleave.slick",{action:"end"},e.swipeHandler),e.$list.on("click.slick",e.clickHandler),i(document).on(e.visibilityChange,i.proxy(e.visibility,e)),!0===e.options.accessibility&&e.$list.on("keydown.slick",e.keyHandler),!0===e.options.focusOnSelect&&i(e.$slideTrack).children().on("click.slick",e.selectHandler),i(window).on("orientationchange.slick.slick-"+e.instanceUid,i.proxy(e.orientationChange,e)),i(window).on("resize.slick.slick-"+e.instanceUid,i.proxy(e.resize,e)),i("[draggable!=true]",e.$slideTrack).on("dragstart",e.preventDefault),i(window).on("load.slick.slick-"+e.instanceUid,e.setPosition),i(e.setPosition)},e.prototype.initUI=function(){var i=this;!0===i.options.arrows&&i.slideCount>i.options.slidesToShow&&(i.$prevArrow.show(),i.$nextArrow.show()),!0===i.options.dots&&i.slideCount>i.options.slidesToShow&&i.$dots.show()},e.prototype.keyHandler=function(i){var e=this;i.target.tagName.match("TEXTAREA|INPUT|SELECT")||(37===i.keyCode&&!0===e.options.accessibility?e.changeSlide({data:{message:!0===e.options.rtl?"next":"previous"}}):39===i.keyCode&&!0===e.options.accessibility&&e.changeSlide({data:{message:!0===e.options.rtl?"previous":"next"}}))},e.prototype.lazyLoad=function(){function e(e){i("img[data-lazy]",e).each(function(){var e=i(this),t=i(this).attr("data-lazy"),o=i(this).attr("data-srcset"),s=i(this).attr("data-sizes")||n.$slider.attr("data-sizes"),r=document.createElement("img");r.onload=function(){e.animate({opacity:0},100,function(){o&&(e.attr("srcset",o),s&&e.attr("sizes",s)),e.attr("src",t).animate({opacity:1},200,function(){e.removeAttr("data-lazy data-srcset data-sizes").removeClass("slick-loading")}),n.$slider.trigger("lazyLoaded",[n,e,t])})},r.onerror=function(){e.removeAttr("data-lazy").removeClass("slick-loading").addClass("slick-lazyload-error"),n.$slider.trigger("lazyLoadError",[n,e,t])},r.src=t})}var t,o,s,n=this;if(!0===n.options.centerMode?!0===n.options.infinite?s=(o=n.currentSlide+(n.options.slidesToShow/2+1))+n.options.slidesToShow+2:(o=Math.max(0,n.currentSlide-(n.options.slidesToShow/2+1)),s=n.options.slidesToShow/2+1+2+n.currentSlide):(o=n.options.infinite?n.options.slidesToShow+n.currentSlide:n.currentSlide,s=Math.ceil(o+n.options.slidesToShow),!0===n.options.fade&&(o>0&&o--,s<=n.slideCount&&s++)),t=n.$slider.find(".slick-slide").slice(o,s),"anticipated"===n.options.lazyLoad)for(var r=o-1,l=s,d=n.$slider.find(".slick-slide"),a=0;a<n.options.slidesToScroll;a++)r<0&&(r=n.slideCount-1),t=(t=t.add(d.eq(r))).add(d.eq(l)),r--,l++;e(t),n.slideCount<=n.options.slidesToShow?e(n.$slider.find(".slick-slide")):n.currentSlide>=n.slideCount-n.options.slidesToShow?e(n.$slider.find(".slick-cloned").slice(0,n.options.slidesToShow)):0===n.currentSlide&&e(n.$slider.find(".slick-cloned").slice(-1*n.options.slidesToShow))},e.prototype.loadSlider=function(){var i=this;i.setPosition(),i.$slideTrack.css({opacity:1}),i.$slider.removeClass("slick-loading"),i.initUI(),"progressive"===i.options.lazyLoad&&i.progressiveLazyLoad()},e.prototype.next=e.prototype.slickNext=function(){this.changeSlide({data:{message:"next"}})},e.prototype.orientationChange=function(){var i=this;i.checkResponsive(),i.setPosition()},e.prototype.pause=e.prototype.slickPause=function(){var i=this;i.autoPlayClear(),i.paused=!0},e.prototype.play=e.prototype.slickPlay=function(){var i=this;i.autoPlay(),i.options.autoplay=!0,i.paused=!1,i.focussed=!1,i.interrupted=!1},e.prototype.postSlide=function(e){var t=this;t.unslicked||(t.$slider.trigger("afterChange",[t,e]),t.animating=!1,t.slideCount>t.options.slidesToShow&&t.setPosition(),t.swipeLeft=null,t.options.autoplay&&t.autoPlay(),!0===t.options.accessibility&&(t.initADA(),t.options.focusOnChange&&i(t.$slides.get(t.currentSlide)).attr("tabindex",0).focus()))},e.prototype.prev=e.prototype.slickPrev=function(){this.changeSlide({data:{message:"previous"}})},e.prototype.preventDefault=function(i){i.preventDefault()},e.prototype.progressiveLazyLoad=function(e){e=e||1;var t,o,s,n,r,l=this,d=i("img[data-lazy]",l.$slider);d.length?(t=d.first(),o=t.attr("data-lazy"),s=t.attr("data-srcset"),n=t.attr("data-sizes")||l.$slider.attr("data-sizes"),(r=document.createElement("img")).onload=function(){s&&(t.attr("srcset",s),n&&t.attr("sizes",n)),t.attr("src",o).removeAttr("data-lazy data-srcset data-sizes").removeClass("slick-loading"),!0===l.options.adaptiveHeight&&l.setPosition(),l.$slider.trigger("lazyLoaded",[l,t,o]),l.progressiveLazyLoad()},r.onerror=function(){e<3?setTimeout(function(){l.progressiveLazyLoad(e+1)},500):(t.removeAttr("data-lazy").removeClass("slick-loading").addClass("slick-lazyload-error"),l.$slider.trigger("lazyLoadError",[l,t,o]),l.progressiveLazyLoad())},r.src=o):l.$slider.trigger("allImagesLoaded",[l])},e.prototype.refresh=function(e){var t,o,s=this;o=s.slideCount-s.options.slidesToShow,!s.options.infinite&&s.currentSlide>o&&(s.currentSlide=o),s.slideCount<=s.options.slidesToShow&&(s.currentSlide=0),t=s.currentSlide,s.destroy(!0),i.extend(s,s.initials,{currentSlide:t}),s.init(),e||s.changeSlide({data:{message:"index",index:t}},!1)},e.prototype.registerBreakpoints=function(){var e,t,o,s=this,n=s.options.responsive||null;if("array"===i.type(n)&&n.length){s.respondTo=s.options.respondTo||"window";for(e in n)if(o=s.breakpoints.length-1,n.hasOwnProperty(e)){for(t=n[e].breakpoint;o>=0;)s.breakpoints[o]&&s.breakpoints[o]===t&&s.breakpoints.splice(o,1),o--;s.breakpoints.push(t),s.breakpointSettings[t]=n[e].settings}s.breakpoints.sort(function(i,e){return s.options.mobileFirst?i-e:e-i})}},e.prototype.reinit=function(){var e=this;e.$slides=e.$slideTrack.children(e.options.slide).addClass("slick-slide"),e.slideCount=e.$slides.length,e.currentSlide>=e.slideCount&&0!==e.currentSlide&&(e.currentSlide=e.currentSlide-e.options.slidesToScroll),e.slideCount<=e.options.slidesToShow&&(e.currentSlide=0),e.registerBreakpoints(),e.setProps(),e.setupInfinite(),e.buildArrows(),e.updateArrows(),e.initArrowEvents(),e.buildDots(),e.updateDots(),e.initDotEvents(),e.cleanUpSlideEvents(),e.initSlideEvents(),e.checkResponsive(!1,!0),!0===e.options.focusOnSelect&&i(e.$slideTrack).children().on("click.slick",e.selectHandler),e.setSlideClasses("number"==typeof e.currentSlide?e.currentSlide:0),e.setPosition(),e.focusHandler(),e.paused=!e.options.autoplay,e.autoPlay(),e.$slider.trigger("reInit",[e])},e.prototype.resize=function(){var e=this;i(window).width()!==e.windowWidth&&(clearTimeout(e.windowDelay),e.windowDelay=window.setTimeout(function(){e.windowWidth=i(window).width(),e.checkResponsive(),e.unslicked||e.setPosition()},50))},e.prototype.removeSlide=e.prototype.slickRemove=function(i,e,t){var o=this;if(i="boolean"==typeof i?!0===(e=i)?0:o.slideCount-1:!0===e?--i:i,o.slideCount<1||i<0||i>o.slideCount-1)return!1;o.unload(),!0===t?o.$slideTrack.children().remove():o.$slideTrack.children(this.options.slide).eq(i).remove(),o.$slides=o.$slideTrack.children(this.options.slide),o.$slideTrack.children(this.options.slide).detach(),o.$slideTrack.append(o.$slides),o.$slidesCache=o.$slides,o.reinit()},e.prototype.setCSS=function(i){var e,t,o=this,s={};!0===o.options.rtl&&(i=-i),e="left"==o.positionProp?Math.ceil(i)+"px":"0px",t="top"==o.positionProp?Math.ceil(i)+"px":"0px",s[o.positionProp]=i,!1===o.transformsEnabled?o.$slideTrack.css(s):(s={},!1===o.cssTransitions?(s[o.animType]="translate("+e+", "+t+")",o.$slideTrack.css(s)):(s[o.animType]="translate3d("+e+", "+t+", 0px)",o.$slideTrack.css(s)))},e.prototype.setDimensions=function(){var i=this;!1===i.options.vertical?!0===i.options.centerMode&&i.$list.css({padding:"0px "+i.options.centerPadding}):(i.$list.height(i.$slides.first().outerHeight(!0)*i.options.slidesToShow),!0===i.options.centerMode&&i.$list.css({padding:i.options.centerPadding+" 0px"})),i.listWidth=i.$list.width(),i.listHeight=i.$list.height(),!1===i.options.vertical&&!1===i.options.variableWidth?(i.slideWidth=Math.ceil(i.listWidth/i.options.slidesToShow),i.$slideTrack.width(Math.ceil(i.slideWidth*i.$slideTrack.children(".slick-slide").length))):!0===i.options.variableWidth?i.$slideTrack.width(5e3*i.slideCount):(i.slideWidth=Math.ceil(i.listWidth),i.$slideTrack.height(Math.ceil(i.$slides.first().outerHeight(!0)*i.$slideTrack.children(".slick-slide").length)));var e=i.$slides.first().outerWidth(!0)-i.$slides.first().width();!1===i.options.variableWidth&&i.$slideTrack.children(".slick-slide").width(i.slideWidth-e)},e.prototype.setFade=function(){var e,t=this;t.$slides.each(function(o,s){e=t.slideWidth*o*-1,!0===t.options.rtl?i(s).css({position:"relative",right:e,top:0,zIndex:t.options.zIndex-2,opacity:0}):i(s).css({position:"relative",left:e,top:0,zIndex:t.options.zIndex-2,opacity:0})}),t.$slides.eq(t.currentSlide).css({zIndex:t.options.zIndex-1,opacity:1})},e.prototype.setHeight=function(){var i=this;if(1===i.options.slidesToShow&&!0===i.options.adaptiveHeight&&!1===i.options.vertical){var e=i.$slides.eq(i.currentSlide).outerHeight(!0);i.$list.css("height",e)}},e.prototype.setOption=e.prototype.slickSetOption=function(){var e,t,o,s,n,r=this,l=!1;if("object"===i.type(arguments[0])?(o=arguments[0],l=arguments[1],n="multiple"):"string"===i.type(arguments[0])&&(o=arguments[0],s=arguments[1],l=arguments[2],"responsive"===arguments[0]&&"array"===i.type(arguments[1])?n="responsive":void 0!==arguments[1]&&(n="single")),"single"===n)r.options[o]=s;else if("multiple"===n)i.each(o,function(i,e){r.options[i]=e});else if("responsive"===n)for(t in s)if("array"!==i.type(r.options.responsive))r.options.responsive=[s[t]];else{for(e=r.options.responsive.length-1;e>=0;)r.options.responsive[e].breakpoint===s[t].breakpoint&&r.options.responsive.splice(e,1),e--;r.options.responsive.push(s[t])}l&&(r.unload(),r.reinit())},e.prototype.setPosition=function(){var i=this;i.setDimensions(),i.setHeight(),!1===i.options.fade?i.setCSS(i.getLeft(i.currentSlide)):i.setFade(),i.$slider.trigger("setPosition",[i])},e.prototype.setProps=function(){var i=this,e=document.body.style;i.positionProp=!0===i.options.vertical?"top":"left","top"===i.positionProp?i.$slider.addClass("slick-vertical"):i.$slider.removeClass("slick-vertical"),void 0===e.WebkitTransition&&void 0===e.MozTransition&&void 0===e.msTransition||!0===i.options.useCSS&&(i.cssTransitions=!0),i.options.fade&&("number"==typeof i.options.zIndex?i.options.zIndex<3&&(i.options.zIndex=3):i.options.zIndex=i.defaults.zIndex),void 0!==e.OTransform&&(i.animType="OTransform",i.transformType="-o-transform",i.transitionType="OTransition",void 0===e.perspectiveProperty&&void 0===e.webkitPerspective&&(i.animType=!1)),void 0!==e.MozTransform&&(i.animType="MozTransform",i.transformType="-moz-transform",i.transitionType="MozTransition",void 0===e.perspectiveProperty&&void 0===e.MozPerspective&&(i.animType=!1)),void 0!==e.webkitTransform&&(i.animType="webkitTransform",i.transformType="-webkit-transform",i.transitionType="webkitTransition",void 0===e.perspectiveProperty&&void 0===e.webkitPerspective&&(i.animType=!1)),void 0!==e.msTransform&&(i.animType="msTransform",i.transformType="-ms-transform",i.transitionType="msTransition",void 0===e.msTransform&&(i.animType=!1)),void 0!==e.transform&&!1!==i.animType&&(i.animType="transform",i.transformType="transform",i.transitionType="transition"),i.transformsEnabled=i.options.useTransform&&null!==i.animType&&!1!==i.animType},e.prototype.setSlideClasses=function(i){var e,t,o,s,n=this;if(t=n.$slider.find(".slick-slide").removeClass("slick-active slick-center slick-current").attr("aria-hidden","true"),n.$slides.eq(i).addClass("slick-current"),!0===n.options.centerMode){var r=n.options.slidesToShow%2==0?1:0;e=Math.floor(n.options.slidesToShow/2),!0===n.options.infinite&&(i>=e&&i<=n.slideCount-1-e?n.$slides.slice(i-e+r,i+e+1).addClass("slick-active").attr("aria-hidden","false"):(o=n.options.slidesToShow+i,t.slice(o-e+1+r,o+e+2).addClass("slick-active").attr("aria-hidden","false")),0===i?t.eq(t.length-1-n.options.slidesToShow).addClass("slick-center"):i===n.slideCount-1&&t.eq(n.options.slidesToShow).addClass("slick-center")),n.$slides.eq(i).addClass("slick-center")}else i>=0&&i<=n.slideCount-n.options.slidesToShow?n.$slides.slice(i,i+n.options.slidesToShow).addClass("slick-active").attr("aria-hidden","false"):t.length<=n.options.slidesToShow?t.addClass("slick-active").attr("aria-hidden","false"):(s=n.slideCount%n.options.slidesToShow,o=!0===n.options.infinite?n.options.slidesToShow+i:i,n.options.slidesToShow==n.options.slidesToScroll&&n.slideCount-i<n.options.slidesToShow?t.slice(o-(n.options.slidesToShow-s),o+s).addClass("slick-active").attr("aria-hidden","false"):t.slice(o,o+n.options.slidesToShow).addClass("slick-active").attr("aria-hidden","false"));"ondemand"!==n.options.lazyLoad&&"anticipated"!==n.options.lazyLoad||n.lazyLoad()},e.prototype.setupInfinite=function(){var e,t,o,s=this;if(!0===s.options.fade&&(s.options.centerMode=!1),!0===s.options.infinite&&!1===s.options.fade&&(t=null,s.slideCount>s.options.slidesToShow)){for(o=!0===s.options.centerMode?s.options.slidesToShow+1:s.options.slidesToShow,e=s.slideCount;e>s.slideCount-o;e-=1)t=e-1,i(s.$slides[t]).clone(!0).attr("id","").attr("data-slick-index",t-s.slideCount).prependTo(s.$slideTrack).addClass("slick-cloned");for(e=0;e<o+s.slideCount;e+=1)t=e,i(s.$slides[t]).clone(!0).attr("id","").attr("data-slick-index",t+s.slideCount).appendTo(s.$slideTrack).addClass("slick-cloned");s.$slideTrack.find(".slick-cloned").find("[id]").each(function(){i(this).attr("id","")})}},e.prototype.interrupt=function(i){var e=this;i||e.autoPlay(),e.interrupted=i},e.prototype.selectHandler=function(e){var t=this,o=i(e.target).is(".slick-slide")?i(e.target):i(e.target).parents(".slick-slide"),s=parseInt(o.attr("data-slick-index"));s||(s=0),t.slideCount<=t.options.slidesToShow?t.slideHandler(s,!1,!0):t.slideHandler(s)},e.prototype.slideHandler=function(i,e,t){var o,s,n,r,l,d=null,a=this;if(e=e||!1,!(!0===a.animating&&!0===a.options.waitForAnimate||!0===a.options.fade&&a.currentSlide===i))if(!1===e&&a.asNavFor(i),o=i,d=a.getLeft(o),r=a.getLeft(a.currentSlide),a.currentLeft=null===a.swipeLeft?r:a.swipeLeft,!1===a.options.infinite&&!1===a.options.centerMode&&(i<0||i>a.getDotCount()*a.options.slidesToScroll))!1===a.options.fade&&(o=a.currentSlide,!0!==t?a.animateSlide(r,function(){a.postSlide(o)}):a.postSlide(o));else if(!1===a.options.infinite&&!0===a.options.centerMode&&(i<0||i>a.slideCount-a.options.slidesToScroll))!1===a.options.fade&&(o=a.currentSlide,!0!==t?a.animateSlide(r,function(){a.postSlide(o)}):a.postSlide(o));else{if(a.options.autoplay&&clearInterval(a.autoPlayTimer),s=o<0?a.slideCount%a.options.slidesToScroll!=0?a.slideCount-a.slideCount%a.options.slidesToScroll:a.slideCount+o:o>=a.slideCount?a.slideCount%a.options.slidesToScroll!=0?0:o-a.slideCount:o,a.animating=!0,a.$slider.trigger("beforeChange",[a,a.currentSlide,s]),n=a.currentSlide,a.currentSlide=s,a.setSlideClasses(a.currentSlide),a.options.asNavFor&&(l=(l=a.getNavTarget()).slick("getSlick")).slideCount<=l.options.slidesToShow&&l.setSlideClasses(a.currentSlide),a.updateDots(),a.updateArrows(),!0===a.options.fade)return!0!==t?(a.fadeSlideOut(n),a.fadeSlide(s,function(){a.postSlide(s)})):a.postSlide(s),void a.animateHeight();!0!==t?a.animateSlide(d,function(){a.postSlide(s)}):a.postSlide(s)}},e.prototype.startLoad=function(){var i=this;!0===i.options.arrows&&i.slideCount>i.options.slidesToShow&&(i.$prevArrow.hide(),i.$nextArrow.hide()),!0===i.options.dots&&i.slideCount>i.options.slidesToShow&&i.$dots.hide(),i.$slider.addClass("slick-loading")},e.prototype.swipeDirection=function(){var i,e,t,o,s=this;return i=s.touchObject.startX-s.touchObject.curX,e=s.touchObject.startY-s.touchObject.curY,t=Math.atan2(e,i),(o=Math.round(180*t/Math.PI))<0&&(o=360-Math.abs(o)),o<=45&&o>=0?!1===s.options.rtl?"left":"right":o<=360&&o>=315?!1===s.options.rtl?"left":"right":o>=135&&o<=225?!1===s.options.rtl?"right":"left":!0===s.options.verticalSwiping?o>=35&&o<=135?"down":"up":"vertical"},e.prototype.swipeEnd=function(i){var e,t,o=this;if(o.dragging=!1,o.swiping=!1,o.scrolling)return o.scrolling=!1,!1;if(o.interrupted=!1,o.shouldClick=!(o.touchObject.swipeLength>10),void 0===o.touchObject.curX)return!1;if(!0===o.touchObject.edgeHit&&o.$slider.trigger("edge",[o,o.swipeDirection()]),o.touchObject.swipeLength>=o.touchObject.minSwipe){switch(t=o.swipeDirection()){case"left":case"down":e=o.options.swipeToSlide?o.checkNavigable(o.currentSlide+o.getSlideCount()):o.currentSlide+o.getSlideCount(),o.currentDirection=0;break;case"right":case"up":e=o.options.swipeToSlide?o.checkNavigable(o.currentSlide-o.getSlideCount()):o.currentSlide-o.getSlideCount(),o.currentDirection=1}"vertical"!=t&&(o.slideHandler(e),o.touchObject={},o.$slider.trigger("swipe",[o,t]))}else o.touchObject.startX!==o.touchObject.curX&&(o.slideHandler(o.currentSlide),o.touchObject={})},e.prototype.swipeHandler=function(i){var e=this;if(!(!1===e.options.swipe||"ontouchend"in document&&!1===e.options.swipe||!1===e.options.draggable&&-1!==i.type.indexOf("mouse")))switch(e.touchObject.fingerCount=i.originalEvent&&void 0!==i.originalEvent.touches?i.originalEvent.touches.length:1,e.touchObject.minSwipe=e.listWidth/e.options.touchThreshold,!0===e.options.verticalSwiping&&(e.touchObject.minSwipe=e.listHeight/e.options.touchThreshold),i.data.action){case"start":e.swipeStart(i);break;case"move":e.swipeMove(i);break;case"end":e.swipeEnd(i)}},e.prototype.swipeMove=function(i){var e,t,o,s,n,r,l=this;return n=void 0!==i.originalEvent?i.originalEvent.touches:null,!(!l.dragging||l.scrolling||n&&1!==n.length)&&(e=l.getLeft(l.currentSlide),l.touchObject.curX=void 0!==n?n[0].pageX:i.clientX,l.touchObject.curY=void 0!==n?n[0].pageY:i.clientY,l.touchObject.swipeLength=Math.round(Math.sqrt(Math.pow(l.touchObject.curX-l.touchObject.startX,2))),r=Math.round(Math.sqrt(Math.pow(l.touchObject.curY-l.touchObject.startY,2))),!l.options.verticalSwiping&&!l.swiping&&r>4?(l.scrolling=!0,!1):(!0===l.options.verticalSwiping&&(l.touchObject.swipeLength=r),t=l.swipeDirection(),void 0!==i.originalEvent&&l.touchObject.swipeLength>4&&(l.swiping=!0,i.preventDefault()),s=(!1===l.options.rtl?1:-1)*(l.touchObject.curX>l.touchObject.startX?1:-1),!0===l.options.verticalSwiping&&(s=l.touchObject.curY>l.touchObject.startY?1:-1),o=l.touchObject.swipeLength,l.touchObject.edgeHit=!1,!1===l.options.infinite&&(0===l.currentSlide&&"right"===t||l.currentSlide>=l.getDotCount()&&"left"===t)&&(o=l.touchObject.swipeLength*l.options.edgeFriction,l.touchObject.edgeHit=!0),!1===l.options.vertical?l.swipeLeft=e+o*s:l.swipeLeft=e+o*(l.$list.height()/l.listWidth)*s,!0===l.options.verticalSwiping&&(l.swipeLeft=e+o*s),!0!==l.options.fade&&!1!==l.options.touchMove&&(!0===l.animating?(l.swipeLeft=null,!1):void l.setCSS(l.swipeLeft))))},e.prototype.swipeStart=function(i){var e,t=this;if(t.interrupted=!0,1!==t.touchObject.fingerCount||t.slideCount<=t.options.slidesToShow)return t.touchObject={},!1;void 0!==i.originalEvent&&void 0!==i.originalEvent.touches&&(e=i.originalEvent.touches[0]),t.touchObject.startX=t.touchObject.curX=void 0!==e?e.pageX:i.clientX,t.touchObject.startY=t.touchObject.curY=void 0!==e?e.pageY:i.clientY,t.dragging=!0},e.prototype.unfilterSlides=e.prototype.slickUnfilter=function(){var i=this;null!==i.$slidesCache&&(i.unload(),i.$slideTrack.children(this.options.slide).detach(),i.$slidesCache.appendTo(i.$slideTrack),i.reinit())},e.prototype.unload=function(){var e=this;i(".slick-cloned",e.$slider).remove(),e.$dots&&e.$dots.remove(),e.$prevArrow&&e.htmlExpr.test(e.options.prevArrow)&&e.$prevArrow.remove(),e.$nextArrow&&e.htmlExpr.test(e.options.nextArrow)&&e.$nextArrow.remove(),e.$slides.removeClass("slick-slide slick-active slick-visible slick-current").attr("aria-hidden","true").css("width","")},e.prototype.unslick=function(i){var e=this;e.$slider.trigger("unslick",[e,i]),e.destroy()},e.prototype.updateArrows=function(){var i=this;Math.floor(i.options.slidesToShow/2),!0===i.options.arrows&&i.slideCount>i.options.slidesToShow&&!i.options.infinite&&(i.$prevArrow.removeClass("slick-disabled").attr("aria-disabled","false"),i.$nextArrow.removeClass("slick-disabled").attr("aria-disabled","false"),0===i.currentSlide?(i.$prevArrow.addClass("slick-disabled").attr("aria-disabled","true"),i.$nextArrow.removeClass("slick-disabled").attr("aria-disabled","false")):i.currentSlide>=i.slideCount-i.options.slidesToShow&&!1===i.options.centerMode?(i.$nextArrow.addClass("slick-disabled").attr("aria-disabled","true"),i.$prevArrow.removeClass("slick-disabled").attr("aria-disabled","false")):i.currentSlide>=i.slideCount-1&&!0===i.options.centerMode&&(i.$nextArrow.addClass("slick-disabled").attr("aria-disabled","true"),i.$prevArrow.removeClass("slick-disabled").attr("aria-disabled","false")))},e.prototype.updateDots=function(){var i=this;null!==i.$dots&&(i.$dots.find("li").removeClass("slick-active").end(),i.$dots.find("li").eq(Math.floor(i.currentSlide/i.options.slidesToScroll)).addClass("slick-active"))},e.prototype.visibility=function(){var i=this;i.options.autoplay&&(document[i.hidden]?i.interrupted=!0:i.interrupted=!1)},i.fn.slick=function(){var i,t,o=this,s=arguments[0],n=Array.prototype.slice.call(arguments,1),r=o.length;for(i=0;i<r;i++)if("object"==typeof s||void 0===s?o[i].slick=new e(o[i],s):t=o[i].slick[s].apply(o[i].slick,n),void 0!==t)return t;return o}});
+
+(function (global, factory) {
+	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+	typeof define === 'function' && define.amd ? define(factory) :
+	(global.Dropbox = factory());
+}(this, (function () { 'use strict';
+
+// Auto-generated by Stone, do not modify.
+var routes = {};
+
+/**
+ * Creates an OAuth 2.0 access token from the supplied OAuth 1.0 access token.
+ * @function Dropbox#authTokenFromOauth1
+ * @arg {AuthTokenFromOAuth1Arg} arg - The request parameters.
+ * @returns {Promise.<AuthTokenFromOAuth1Result, Error.<AuthTokenFromOAuth1Error>>}
+ */
+routes.authTokenFromOauth1 = function (arg) {
+  return this.request('auth/token/from_oauth1', arg, 'app', 'api', 'rpc');
+};
+
+/**
+ * Disables the access token used to authenticate the call.
+ * @function Dropbox#authTokenRevoke
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<void, Error.<void>>}
+ */
+routes.authTokenRevoke = function (arg) {
+  return this.request('auth/token/revoke', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Add property groups to a Dropbox file. See templates/add_for_user or
+ * templates/add_for_team to create new templates.
+ * @function Dropbox#filePropertiesPropertiesAdd
+ * @arg {FilePropertiesAddPropertiesArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesAddPropertiesError>>}
+ */
+routes.filePropertiesPropertiesAdd = function (arg) {
+  return this.request('file_properties/properties/add', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Overwrite property groups associated with a file. This endpoint should be
+ * used instead of properties/update when property groups are being updated via
+ * a "snapshot" instead of via a "delta". In other words, this endpoint will
+ * delete all omitted fields from a property group, whereas properties/update
+ * will only delete fields that are explicitly marked for deletion.
+ * @function Dropbox#filePropertiesPropertiesOverwrite
+ * @arg {FilePropertiesOverwritePropertyGroupArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesInvalidPropertyGroupError>>}
+ */
+routes.filePropertiesPropertiesOverwrite = function (arg) {
+  return this.request('file_properties/properties/overwrite', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Permanently removes the specified property group from the file. To remove
+ * specific property field key value pairs, see properties/update. To update a
+ * template, see templates/update_for_user or templates/update_for_team.
+ * Templates can't be removed once created.
+ * @function Dropbox#filePropertiesPropertiesRemove
+ * @arg {FilePropertiesRemovePropertiesArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesRemovePropertiesError>>}
+ */
+routes.filePropertiesPropertiesRemove = function (arg) {
+  return this.request('file_properties/properties/remove', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Search across property templates for particular property field values.
+ * @function Dropbox#filePropertiesPropertiesSearch
+ * @arg {FilePropertiesPropertiesSearchArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesPropertiesSearchResult, Error.<FilePropertiesPropertiesSearchError>>}
+ */
+routes.filePropertiesPropertiesSearch = function (arg) {
+  return this.request('file_properties/properties/search', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from properties/search, use this to paginate
+ * through all search results.
+ * @function Dropbox#filePropertiesPropertiesSearchContinue
+ * @arg {FilePropertiesPropertiesSearchContinueArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesPropertiesSearchResult, Error.<FilePropertiesPropertiesSearchContinueError>>}
+ */
+routes.filePropertiesPropertiesSearchContinue = function (arg) {
+  return this.request('file_properties/properties/search/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Add, update or remove properties associated with the supplied file and
+ * templates. This endpoint should be used instead of properties/overwrite when
+ * property groups are being updated via a "delta" instead of via a "snapshot" .
+ * In other words, this endpoint will not delete any omitted fields from a
+ * property group, whereas properties/overwrite will delete any fields that are
+ * omitted from a property group.
+ * @function Dropbox#filePropertiesPropertiesUpdate
+ * @arg {FilePropertiesUpdatePropertiesArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesUpdatePropertiesError>>}
+ */
+routes.filePropertiesPropertiesUpdate = function (arg) {
+  return this.request('file_properties/properties/update', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Add a template associated with a team. See properties/add to add properties
+ * to a file or folder. Note: this endpoint will create team-owned templates.
+ * @function Dropbox#filePropertiesTemplatesAddForTeam
+ * @arg {FilePropertiesAddTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesAddTemplateResult, Error.<FilePropertiesModifyTemplateError>>}
+ */
+routes.filePropertiesTemplatesAddForTeam = function (arg) {
+  return this.request('file_properties/templates/add_for_team', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Add a template associated with a user. See properties/add to add properties
+ * to a file. This endpoint can't be called on a team member or admin's behalf.
+ * @function Dropbox#filePropertiesTemplatesAddForUser
+ * @arg {FilePropertiesAddTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesAddTemplateResult, Error.<FilePropertiesModifyTemplateError>>}
+ */
+routes.filePropertiesTemplatesAddForUser = function (arg) {
+  return this.request('file_properties/templates/add_for_user', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get the schema for a specified template.
+ * @function Dropbox#filePropertiesTemplatesGetForTeam
+ * @arg {FilePropertiesGetTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesGetTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filePropertiesTemplatesGetForTeam = function (arg) {
+  return this.request('file_properties/templates/get_for_team', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Get the schema for a specified template. This endpoint can't be called on a
+ * team member or admin's behalf.
+ * @function Dropbox#filePropertiesTemplatesGetForUser
+ * @arg {FilePropertiesGetTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesGetTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filePropertiesTemplatesGetForUser = function (arg) {
+  return this.request('file_properties/templates/get_for_user', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get the template identifiers for a team. To get the schema of each template
+ * use templates/get_for_team.
+ * @function Dropbox#filePropertiesTemplatesListForTeam
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesListTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filePropertiesTemplatesListForTeam = function (arg) {
+  return this.request('file_properties/templates/list_for_team', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Get the template identifiers for a team. To get the schema of each template
+ * use templates/get_for_user. This endpoint can't be called on a team member or
+ * admin's behalf.
+ * @function Dropbox#filePropertiesTemplatesListForUser
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesListTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filePropertiesTemplatesListForUser = function (arg) {
+  return this.request('file_properties/templates/list_for_user', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Permanently removes the specified template created from
+ * templates/add_for_user. All properties associated with the template will also
+ * be removed. This action cannot be undone.
+ * @function Dropbox#filePropertiesTemplatesRemoveForTeam
+ * @arg {FilePropertiesRemoveTemplateArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filePropertiesTemplatesRemoveForTeam = function (arg) {
+  return this.request('file_properties/templates/remove_for_team', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Permanently removes the specified template created from
+ * templates/add_for_user. All properties associated with the template will also
+ * be removed. This action cannot be undone.
+ * @function Dropbox#filePropertiesTemplatesRemoveForUser
+ * @arg {FilePropertiesRemoveTemplateArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filePropertiesTemplatesRemoveForUser = function (arg) {
+  return this.request('file_properties/templates/remove_for_user', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Update a template associated with a team. This route can update the template
+ * name, the template description and add optional properties to templates.
+ * @function Dropbox#filePropertiesTemplatesUpdateForTeam
+ * @arg {FilePropertiesUpdateTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesUpdateTemplateResult, Error.<FilePropertiesModifyTemplateError>>}
+ */
+routes.filePropertiesTemplatesUpdateForTeam = function (arg) {
+  return this.request('file_properties/templates/update_for_team', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Update a template associated with a user. This route can update the template
+ * name, the template description and add optional properties to templates. This
+ * endpoint can't be called on a team member or admin's behalf.
+ * @function Dropbox#filePropertiesTemplatesUpdateForUser
+ * @arg {FilePropertiesUpdateTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesUpdateTemplateResult, Error.<FilePropertiesModifyTemplateError>>}
+ */
+routes.filePropertiesTemplatesUpdateForUser = function (arg) {
+  return this.request('file_properties/templates/update_for_user', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Creates a file request for this user.
+ * @function Dropbox#fileRequestsCreate
+ * @arg {FileRequestsCreateFileRequestArgs} arg - The request parameters.
+ * @returns {Promise.<FileRequestsFileRequest, Error.<FileRequestsCreateFileRequestError>>}
+ */
+routes.fileRequestsCreate = function (arg) {
+  return this.request('file_requests/create', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the specified file request.
+ * @function Dropbox#fileRequestsGet
+ * @arg {FileRequestsGetFileRequestArgs} arg - The request parameters.
+ * @returns {Promise.<FileRequestsFileRequest, Error.<FileRequestsGetFileRequestError>>}
+ */
+routes.fileRequestsGet = function (arg) {
+  return this.request('file_requests/get', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns a list of file requests owned by this user. For apps with the app
+ * folder permission, this will only return file requests with destinations in
+ * the app folder.
+ * @function Dropbox#fileRequestsList
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<FileRequestsListFileRequestsResult, Error.<FileRequestsListFileRequestsError>>}
+ */
+routes.fileRequestsList = function (arg) {
+  return this.request('file_requests/list', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Update a file request.
+ * @function Dropbox#fileRequestsUpdate
+ * @arg {FileRequestsUpdateFileRequestArgs} arg - The request parameters.
+ * @returns {Promise.<FileRequestsFileRequest, Error.<FileRequestsUpdateFileRequestError>>}
+ */
+routes.fileRequestsUpdate = function (arg) {
+  return this.request('file_requests/update', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the metadata for a file or folder. This is an alpha endpoint
+ * compatible with the properties API. Note: Metadata for the root folder is
+ * unsupported.
+ * @function Dropbox#filesAlphaGetMetadata
+ * @deprecated
+ * @arg {FilesAlphaGetMetadataArg} arg - The request parameters.
+ * @returns {Promise.<(FilesFileMetadata|FilesFolderMetadata|FilesDeletedMetadata), Error.<FilesAlphaGetMetadataError>>}
+ */
+routes.filesAlphaGetMetadata = function (arg) {
+  return this.request('files/alpha/get_metadata', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Create a new file with the contents provided in the request. Note that this
+ * endpoint is part of the properties API alpha and is slightly different from
+ * upload. Do not use this to upload a file larger than 150 MB. Instead, create
+ * an upload session with upload_session/start.
+ * @function Dropbox#filesAlphaUpload
+ * @deprecated
+ * @arg {FilesCommitInfoWithProperties} arg - The request parameters.
+ * @returns {Promise.<FilesFileMetadata, Error.<FilesUploadErrorWithProperties>>}
+ */
+routes.filesAlphaUpload = function (arg) {
+  return this.request('files/alpha/upload', arg, 'user', 'content', 'upload');
+};
+
+/**
+ * Copy a file or folder to a different location in the user's Dropbox. If the
+ * source path is a folder all its contents will be copied.
+ * @function Dropbox#filesCopy
+ * @deprecated
+ * @arg {FilesRelocationArg} arg - The request parameters.
+ * @returns {Promise.<(FilesFileMetadata|FilesFolderMetadata|FilesDeletedMetadata), Error.<FilesRelocationError>>}
+ */
+routes.filesCopy = function (arg) {
+  return this.request('files/copy', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Copy multiple files or folders to different locations at once in the user's
+ * Dropbox. If RelocationBatchArg.allow_shared_folder is false, this route is
+ * atomic. If on entry failes, the whole transaction will abort. If
+ * RelocationBatchArg.allow_shared_folder is true, not atomicity is guaranteed,
+ * but you will be able to copy the contents of shared folders to new locations.
+ * This route will return job ID immediately and do the async copy job in
+ * background. Please use copy_batch/check to check the job status.
+ * @function Dropbox#filesCopyBatch
+ * @arg {FilesRelocationBatchArg} arg - The request parameters.
+ * @returns {Promise.<FilesRelocationBatchLaunch, Error.<void>>}
+ */
+routes.filesCopyBatch = function (arg) {
+  return this.request('files/copy_batch', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job for copy_batch. If success, it
+ * returns list of results for each entry.
+ * @function Dropbox#filesCopyBatchCheck
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<FilesRelocationBatchJobStatus, Error.<AsyncPollError>>}
+ */
+routes.filesCopyBatchCheck = function (arg) {
+  return this.request('files/copy_batch/check', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get a copy reference to a file or folder. This reference string can be used
+ * to save that file or folder to another user's Dropbox by passing it to
+ * copy_reference/save.
+ * @function Dropbox#filesCopyReferenceGet
+ * @arg {FilesGetCopyReferenceArg} arg - The request parameters.
+ * @returns {Promise.<FilesGetCopyReferenceResult, Error.<FilesGetCopyReferenceError>>}
+ */
+routes.filesCopyReferenceGet = function (arg) {
+  return this.request('files/copy_reference/get', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Save a copy reference returned by copy_reference/get to the user's Dropbox.
+ * @function Dropbox#filesCopyReferenceSave
+ * @arg {FilesSaveCopyReferenceArg} arg - The request parameters.
+ * @returns {Promise.<FilesSaveCopyReferenceResult, Error.<FilesSaveCopyReferenceError>>}
+ */
+routes.filesCopyReferenceSave = function (arg) {
+  return this.request('files/copy_reference/save', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Copy a file or folder to a different location in the user's Dropbox. If the
+ * source path is a folder all its contents will be copied.
+ * @function Dropbox#filesCopyV2
+ * @arg {FilesRelocationArg} arg - The request parameters.
+ * @returns {Promise.<FilesRelocationResult, Error.<FilesRelocationError>>}
+ */
+routes.filesCopyV2 = function (arg) {
+  return this.request('files/copy_v2', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Create a folder at a given path.
+ * @function Dropbox#filesCreateFolder
+ * @deprecated
+ * @arg {FilesCreateFolderArg} arg - The request parameters.
+ * @returns {Promise.<FilesFolderMetadata, Error.<FilesCreateFolderError>>}
+ */
+routes.filesCreateFolder = function (arg) {
+  return this.request('files/create_folder', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Create a folder at a given path.
+ * @function Dropbox#filesCreateFolderV2
+ * @arg {FilesCreateFolderArg} arg - The request parameters.
+ * @returns {Promise.<FilesCreateFolderResult, Error.<FilesCreateFolderError>>}
+ */
+routes.filesCreateFolderV2 = function (arg) {
+  return this.request('files/create_folder_v2', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Delete the file or folder at a given path. If the path is a folder, all its
+ * contents will be deleted too. A successful response indicates that the file
+ * or folder was deleted. The returned metadata will be the corresponding
+ * FileMetadata or FolderMetadata for the item at time of deletion, and not a
+ * DeletedMetadata object.
+ * @function Dropbox#filesDelete
+ * @deprecated
+ * @arg {FilesDeleteArg} arg - The request parameters.
+ * @returns {Promise.<(FilesFileMetadata|FilesFolderMetadata|FilesDeletedMetadata), Error.<FilesDeleteError>>}
+ */
+routes.filesDelete = function (arg) {
+  return this.request('files/delete', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Delete multiple files/folders at once. This route is asynchronous, which
+ * returns a job ID immediately and runs the delete batch asynchronously. Use
+ * delete_batch/check to check the job status.
+ * @function Dropbox#filesDeleteBatch
+ * @arg {FilesDeleteBatchArg} arg - The request parameters.
+ * @returns {Promise.<FilesDeleteBatchLaunch, Error.<void>>}
+ */
+routes.filesDeleteBatch = function (arg) {
+  return this.request('files/delete_batch', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job for delete_batch. If success, it
+ * returns list of result for each entry.
+ * @function Dropbox#filesDeleteBatchCheck
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<FilesDeleteBatchJobStatus, Error.<AsyncPollError>>}
+ */
+routes.filesDeleteBatchCheck = function (arg) {
+  return this.request('files/delete_batch/check', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Delete the file or folder at a given path. If the path is a folder, all its
+ * contents will be deleted too. A successful response indicates that the file
+ * or folder was deleted. The returned metadata will be the corresponding
+ * FileMetadata or FolderMetadata for the item at time of deletion, and not a
+ * DeletedMetadata object.
+ * @function Dropbox#filesDeleteV2
+ * @arg {FilesDeleteArg} arg - The request parameters.
+ * @returns {Promise.<FilesDeleteResult, Error.<FilesDeleteError>>}
+ */
+routes.filesDeleteV2 = function (arg) {
+  return this.request('files/delete_v2', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Download a file from a user's Dropbox.
+ * @function Dropbox#filesDownload
+ * @arg {FilesDownloadArg} arg - The request parameters.
+ * @returns {Promise.<FilesFileMetadata, Error.<FilesDownloadError>>}
+ */
+routes.filesDownload = function (arg) {
+  return this.request('files/download', arg, 'user', 'content', 'download');
+};
+
+/**
+ * Download a folder from the user's Dropbox, as a zip file. The folder must be
+ * less than 1 GB in size and have fewer than 10,000 total files. The input
+ * cannot be a single file.
+ * @function Dropbox#filesDownloadZip
+ * @arg {FilesDownloadZipArg} arg - The request parameters.
+ * @returns {Promise.<FilesDownloadZipResult, Error.<FilesDownloadZipError>>}
+ */
+routes.filesDownloadZip = function (arg) {
+  return this.request('files/download_zip', arg, 'user', 'content', 'download');
+};
+
+/**
+ * Returns the metadata for a file or folder. Note: Metadata for the root folder
+ * is unsupported.
+ * @function Dropbox#filesGetMetadata
+ * @arg {FilesGetMetadataArg} arg - The request parameters.
+ * @returns {Promise.<(FilesFileMetadata|FilesFolderMetadata|FilesDeletedMetadata), Error.<FilesGetMetadataError>>}
+ */
+routes.filesGetMetadata = function (arg) {
+  return this.request('files/get_metadata', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get a preview for a file. Currently, PDF previews are generated for files
+ * with the following extensions: .ai, .doc, .docm, .docx, .eps, .odp, .odt,
+ * .pps, .ppsm, .ppsx, .ppt, .pptm, .pptx, .rtf. HTML previews are generated for
+ * files with the following extensions: .csv, .ods, .xls, .xlsm, .xlsx. Other
+ * formats will return an unsupported extension error.
+ * @function Dropbox#filesGetPreview
+ * @arg {FilesPreviewArg} arg - The request parameters.
+ * @returns {Promise.<FilesFileMetadata, Error.<FilesPreviewError>>}
+ */
+routes.filesGetPreview = function (arg) {
+  return this.request('files/get_preview', arg, 'user', 'content', 'download');
+};
+
+/**
+ * Get a temporary link to stream content of a file. This link will expire in
+ * four hours and afterwards you will get 410 Gone. Content-Type of the link is
+ * determined automatically by the file's mime type.
+ * @function Dropbox#filesGetTemporaryLink
+ * @arg {FilesGetTemporaryLinkArg} arg - The request parameters.
+ * @returns {Promise.<FilesGetTemporaryLinkResult, Error.<FilesGetTemporaryLinkError>>}
+ */
+routes.filesGetTemporaryLink = function (arg) {
+  return this.request('files/get_temporary_link', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get a thumbnail for an image. This method currently supports files with the
+ * following file extensions: jpg, jpeg, png, tiff, tif, gif and bmp. Photos
+ * that are larger than 20MB in size won't be converted to a thumbnail.
+ * @function Dropbox#filesGetThumbnail
+ * @arg {FilesThumbnailArg} arg - The request parameters.
+ * @returns {Promise.<FilesFileMetadata, Error.<FilesThumbnailError>>}
+ */
+routes.filesGetThumbnail = function (arg) {
+  return this.request('files/get_thumbnail', arg, 'user', 'content', 'download');
+};
+
+/**
+ * Get thumbnails for a list of images. We allow up to 25 thumbnails in a single
+ * batch. This method currently supports files with the following file
+ * extensions: jpg, jpeg, png, tiff, tif, gif and bmp. Photos that are larger
+ * than 20MB in size won't be converted to a thumbnail.
+ * @function Dropbox#filesGetThumbnailBatch
+ * @arg {FilesGetThumbnailBatchArg} arg - The request parameters.
+ * @returns {Promise.<FilesGetThumbnailBatchResult, Error.<FilesGetThumbnailBatchError>>}
+ */
+routes.filesGetThumbnailBatch = function (arg) {
+  return this.request('files/get_thumbnail_batch', arg, 'user', 'content', 'rpc');
+};
+
+/**
+ * Starts returning the contents of a folder. If the result's
+ * ListFolderResult.has_more field is true, call list_folder/continue with the
+ * returned ListFolderResult.cursor to retrieve more entries. If you're using
+ * ListFolderArg.recursive set to true to keep a local cache of the contents of
+ * a Dropbox account, iterate through each entry in order and process them as
+ * follows to keep your local state in sync: For each FileMetadata, store the
+ * new entry at the given path in your local state. If the required parent
+ * folders don't exist yet, create them. If there's already something else at
+ * the given path, replace it and remove all its children. For each
+ * FolderMetadata, store the new entry at the given path in your local state. If
+ * the required parent folders don't exist yet, create them. If there's already
+ * something else at the given path, replace it but leave the children as they
+ * are. Check the new entry's FolderSharingInfo.read_only and set all its
+ * children's read-only statuses to match. For each DeletedMetadata, if your
+ * local state has something at the given path, remove it and all its children.
+ * If there's nothing at the given path, ignore this entry. Note:
+ * auth.RateLimitError may be returned if multiple list_folder or
+ * list_folder/continue calls with same parameters are made simultaneously by
+ * same API app for same user. If your app implements retry logic, please hold
+ * off the retry until the previous request finishes.
+ * @function Dropbox#filesListFolder
+ * @arg {FilesListFolderArg} arg - The request parameters.
+ * @returns {Promise.<FilesListFolderResult, Error.<FilesListFolderError>>}
+ */
+routes.filesListFolder = function (arg) {
+  return this.request('files/list_folder', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from list_folder, use this to paginate
+ * through all files and retrieve updates to the folder, following the same
+ * rules as documented for list_folder.
+ * @function Dropbox#filesListFolderContinue
+ * @arg {FilesListFolderContinueArg} arg - The request parameters.
+ * @returns {Promise.<FilesListFolderResult, Error.<FilesListFolderContinueError>>}
+ */
+routes.filesListFolderContinue = function (arg) {
+  return this.request('files/list_folder/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * A way to quickly get a cursor for the folder's state. Unlike list_folder,
+ * list_folder/get_latest_cursor doesn't return any entries. This endpoint is
+ * for app which only needs to know about new files and modifications and
+ * doesn't need to know about files that already exist in Dropbox.
+ * @function Dropbox#filesListFolderGetLatestCursor
+ * @arg {FilesListFolderArg} arg - The request parameters.
+ * @returns {Promise.<FilesListFolderGetLatestCursorResult, Error.<FilesListFolderError>>}
+ */
+routes.filesListFolderGetLatestCursor = function (arg) {
+  return this.request('files/list_folder/get_latest_cursor', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * A longpoll endpoint to wait for changes on an account. In conjunction with
+ * list_folder/continue, this call gives you a low-latency way to monitor an
+ * account for file changes. The connection will block until there are changes
+ * available or a timeout occurs. This endpoint is useful mostly for client-side
+ * apps. If you're looking for server-side notifications, check out our webhooks
+ * documentation https://www.dropbox.com/developers/reference/webhooks.
+ * @function Dropbox#filesListFolderLongpoll
+ * @arg {FilesListFolderLongpollArg} arg - The request parameters.
+ * @returns {Promise.<FilesListFolderLongpollResult, Error.<FilesListFolderLongpollError>>}
+ */
+routes.filesListFolderLongpoll = function (arg) {
+  return this.request('files/list_folder/longpoll', arg, 'noauth', 'notify', 'rpc');
+};
+
+/**
+ * Returns revisions for files based on a file path or a file id. The file path
+ * or file id is identified from the latest file entry at the given file path or
+ * id. This end point allows your app to query either by file path or file id by
+ * setting the mode parameter appropriately. In the ListRevisionsMode.path
+ * (default) mode, all revisions at the same file path as the latest file entry
+ * are returned. If revisions with the same file id are desired, then mode must
+ * be set to ListRevisionsMode.id. The ListRevisionsMode.id mode is useful to
+ * retrieve revisions for a given file across moves or renames.
+ * @function Dropbox#filesListRevisions
+ * @arg {FilesListRevisionsArg} arg - The request parameters.
+ * @returns {Promise.<FilesListRevisionsResult, Error.<FilesListRevisionsError>>}
+ */
+routes.filesListRevisions = function (arg) {
+  return this.request('files/list_revisions', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Move a file or folder to a different location in the user's Dropbox. If the
+ * source path is a folder all its contents will be moved.
+ * @function Dropbox#filesMove
+ * @deprecated
+ * @arg {FilesRelocationArg} arg - The request parameters.
+ * @returns {Promise.<(FilesFileMetadata|FilesFolderMetadata|FilesDeletedMetadata), Error.<FilesRelocationError>>}
+ */
+routes.filesMove = function (arg) {
+  return this.request('files/move', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Move multiple files or folders to different locations at once in the user's
+ * Dropbox. This route is 'all or nothing', which means if one entry fails, the
+ * whole transaction will abort. This route will return job ID immediately and
+ * do the async moving job in background. Please use move_batch/check to check
+ * the job status.
+ * @function Dropbox#filesMoveBatch
+ * @arg {FilesRelocationBatchArg} arg - The request parameters.
+ * @returns {Promise.<FilesRelocationBatchLaunch, Error.<void>>}
+ */
+routes.filesMoveBatch = function (arg) {
+  return this.request('files/move_batch', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job for move_batch. If success, it
+ * returns list of results for each entry.
+ * @function Dropbox#filesMoveBatchCheck
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<FilesRelocationBatchJobStatus, Error.<AsyncPollError>>}
+ */
+routes.filesMoveBatchCheck = function (arg) {
+  return this.request('files/move_batch/check', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Move a file or folder to a different location in the user's Dropbox. If the
+ * source path is a folder all its contents will be moved.
+ * @function Dropbox#filesMoveV2
+ * @arg {FilesRelocationArg} arg - The request parameters.
+ * @returns {Promise.<FilesRelocationResult, Error.<FilesRelocationError>>}
+ */
+routes.filesMoveV2 = function (arg) {
+  return this.request('files/move_v2', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Permanently delete the file or folder at a given path (see
+ * https://www.dropbox.com/en/help/40). Note: This endpoint is only available
+ * for Dropbox Business apps.
+ * @function Dropbox#filesPermanentlyDelete
+ * @arg {FilesDeleteArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilesDeleteError>>}
+ */
+routes.filesPermanentlyDelete = function (arg) {
+  return this.request('files/permanently_delete', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * @function Dropbox#filesPropertiesAdd
+ * @deprecated
+ * @arg {FilePropertiesAddPropertiesArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesAddPropertiesError>>}
+ */
+routes.filesPropertiesAdd = function (arg) {
+  return this.request('files/properties/add', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * @function Dropbox#filesPropertiesOverwrite
+ * @deprecated
+ * @arg {FilePropertiesOverwritePropertyGroupArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesInvalidPropertyGroupError>>}
+ */
+routes.filesPropertiesOverwrite = function (arg) {
+  return this.request('files/properties/overwrite', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * @function Dropbox#filesPropertiesRemove
+ * @deprecated
+ * @arg {FilePropertiesRemovePropertiesArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesRemovePropertiesError>>}
+ */
+routes.filesPropertiesRemove = function (arg) {
+  return this.request('files/properties/remove', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * @function Dropbox#filesPropertiesTemplateGet
+ * @deprecated
+ * @arg {FilePropertiesGetTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesGetTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filesPropertiesTemplateGet = function (arg) {
+  return this.request('files/properties/template/get', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * @function Dropbox#filesPropertiesTemplateList
+ * @deprecated
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesListTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filesPropertiesTemplateList = function (arg) {
+  return this.request('files/properties/template/list', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * @function Dropbox#filesPropertiesUpdate
+ * @deprecated
+ * @arg {FilePropertiesUpdatePropertiesArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesUpdatePropertiesError>>}
+ */
+routes.filesPropertiesUpdate = function (arg) {
+  return this.request('files/properties/update', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Restore a file to a specific revision.
+ * @function Dropbox#filesRestore
+ * @arg {FilesRestoreArg} arg - The request parameters.
+ * @returns {Promise.<FilesFileMetadata, Error.<FilesRestoreError>>}
+ */
+routes.filesRestore = function (arg) {
+  return this.request('files/restore', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Save a specified URL into a file in user's Dropbox. If the given path already
+ * exists, the file will be renamed to avoid the conflict (e.g. myfile (1).txt).
+ * @function Dropbox#filesSaveUrl
+ * @arg {FilesSaveUrlArg} arg - The request parameters.
+ * @returns {Promise.<FilesSaveUrlResult, Error.<FilesSaveUrlError>>}
+ */
+routes.filesSaveUrl = function (arg) {
+  return this.request('files/save_url', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Check the status of a save_url job.
+ * @function Dropbox#filesSaveUrlCheckJobStatus
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<FilesSaveUrlJobStatus, Error.<AsyncPollError>>}
+ */
+routes.filesSaveUrlCheckJobStatus = function (arg) {
+  return this.request('files/save_url/check_job_status', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Searches for files and folders. Note: Recent changes may not immediately be
+ * reflected in search results due to a short delay in indexing.
+ * @function Dropbox#filesSearch
+ * @arg {FilesSearchArg} arg - The request parameters.
+ * @returns {Promise.<FilesSearchResult, Error.<FilesSearchError>>}
+ */
+routes.filesSearch = function (arg) {
+  return this.request('files/search', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Create a new file with the contents provided in the request. Do not use this
+ * to upload a file larger than 150 MB. Instead, create an upload session with
+ * upload_session/start.
+ * @function Dropbox#filesUpload
+ * @arg {FilesCommitInfo} arg - The request parameters.
+ * @returns {Promise.<FilesFileMetadata, Error.<FilesUploadError>>}
+ */
+routes.filesUpload = function (arg) {
+  return this.request('files/upload', arg, 'user', 'content', 'upload');
+};
+
+/**
+ * Append more data to an upload session. A single request should not upload
+ * more than 150 MB.
+ * @function Dropbox#filesUploadSessionAppend
+ * @deprecated
+ * @arg {FilesUploadSessionCursor} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilesUploadSessionLookupError>>}
+ */
+routes.filesUploadSessionAppend = function (arg) {
+  return this.request('files/upload_session/append', arg, 'user', 'content', 'upload');
+};
+
+/**
+ * Append more data to an upload session. When the parameter close is set, this
+ * call will close the session. A single request should not upload more than 150
+ * MB.
+ * @function Dropbox#filesUploadSessionAppendV2
+ * @arg {FilesUploadSessionAppendArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilesUploadSessionLookupError>>}
+ */
+routes.filesUploadSessionAppendV2 = function (arg) {
+  return this.request('files/upload_session/append_v2', arg, 'user', 'content', 'upload');
+};
+
+/**
+ * Finish an upload session and save the uploaded data to the given file path. A
+ * single request should not upload more than 150 MB.
+ * @function Dropbox#filesUploadSessionFinish
+ * @arg {FilesUploadSessionFinishArg} arg - The request parameters.
+ * @returns {Promise.<FilesFileMetadata, Error.<FilesUploadSessionFinishError>>}
+ */
+routes.filesUploadSessionFinish = function (arg) {
+  return this.request('files/upload_session/finish', arg, 'user', 'content', 'upload');
+};
+
+/**
+ * This route helps you commit many files at once into a user's Dropbox. Use
+ * upload_session/start and upload_session/append_v2 to upload file contents. We
+ * recommend uploading many files in parallel to increase throughput. Once the
+ * file contents have been uploaded, rather than calling upload_session/finish,
+ * use this route to finish all your upload sessions in a single request.
+ * UploadSessionStartArg.close or UploadSessionAppendArg.close needs to be true
+ * for the last upload_session/start or upload_session/append_v2 call. This
+ * route will return a job_id immediately and do the async commit job in
+ * background. Use upload_session/finish_batch/check to check the job status.
+ * For the same account, this route should be executed serially. That means you
+ * should not start the next job before current job finishes. We allow up to
+ * 1000 entries in a single request.
+ * @function Dropbox#filesUploadSessionFinishBatch
+ * @arg {FilesUploadSessionFinishBatchArg} arg - The request parameters.
+ * @returns {Promise.<FilesUploadSessionFinishBatchLaunch, Error.<void>>}
+ */
+routes.filesUploadSessionFinishBatch = function (arg) {
+  return this.request('files/upload_session/finish_batch', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job for upload_session/finish_batch. If
+ * success, it returns list of result for each entry.
+ * @function Dropbox#filesUploadSessionFinishBatchCheck
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<FilesUploadSessionFinishBatchJobStatus, Error.<AsyncPollError>>}
+ */
+routes.filesUploadSessionFinishBatchCheck = function (arg) {
+  return this.request('files/upload_session/finish_batch/check', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Upload sessions allow you to upload a single file in one or more requests,
+ * for example where the size of the file is greater than 150 MB.  This call
+ * starts a new upload session with the given data. You can then use
+ * upload_session/append_v2 to add more data and upload_session/finish to save
+ * all the data to a file in Dropbox. A single request should not upload more
+ * than 150 MB. An upload session can be used for a maximum of 48 hours.
+ * Attempting to use an UploadSessionStartResult.session_id with
+ * upload_session/append_v2 or upload_session/finish more than 48 hours after
+ * its creation will return a UploadSessionLookupError.not_found.
+ * @function Dropbox#filesUploadSessionStart
+ * @arg {FilesUploadSessionStartArg} arg - The request parameters.
+ * @returns {Promise.<FilesUploadSessionStartResult, Error.<void>>}
+ */
+routes.filesUploadSessionStart = function (arg) {
+  return this.request('files/upload_session/start', arg, 'user', 'content', 'upload');
+};
+
+/**
+ * Marks the given Paper doc as archived. Note: This action can be performed or
+ * undone by anyone with edit permissions to the doc.
+ * @function Dropbox#paperDocsArchive
+ * @arg {PaperRefPaperDoc} arg - The request parameters.
+ * @returns {Promise.<void, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsArchive = function (arg) {
+  return this.request('paper/docs/archive', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Creates a new Paper doc with the provided content.
+ * @function Dropbox#paperDocsCreate
+ * @arg {PaperPaperDocCreateArgs} arg - The request parameters.
+ * @returns {Promise.<PaperPaperDocCreateUpdateResult, Error.<PaperPaperDocCreateError>>}
+ */
+routes.paperDocsCreate = function (arg) {
+  return this.request('paper/docs/create', arg, 'user', 'api', 'upload');
+};
+
+/**
+ * Exports and downloads Paper doc either as HTML or markdown.
+ * @function Dropbox#paperDocsDownload
+ * @arg {PaperPaperDocExport} arg - The request parameters.
+ * @returns {Promise.<PaperPaperDocExportResult, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsDownload = function (arg) {
+  return this.request('paper/docs/download', arg, 'user', 'api', 'download');
+};
+
+/**
+ * Lists the users who are explicitly invited to the Paper folder in which the
+ * Paper doc is contained. For private folders all users (including owner)
+ * shared on the folder are listed and for team folders all non-team users
+ * shared on the folder are returned.
+ * @function Dropbox#paperDocsFolderUsersList
+ * @arg {PaperListUsersOnFolderArgs} arg - The request parameters.
+ * @returns {Promise.<PaperListUsersOnFolderResponse, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsFolderUsersList = function (arg) {
+  return this.request('paper/docs/folder_users/list', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from docs/folder_users/list, use this to
+ * paginate through all users on the Paper folder.
+ * @function Dropbox#paperDocsFolderUsersListContinue
+ * @arg {PaperListUsersOnFolderContinueArgs} arg - The request parameters.
+ * @returns {Promise.<PaperListUsersOnFolderResponse, Error.<PaperListUsersCursorError>>}
+ */
+routes.paperDocsFolderUsersListContinue = function (arg) {
+  return this.request('paper/docs/folder_users/list/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Retrieves folder information for the given Paper doc. This includes:   -
+ * folder sharing policy; permissions for subfolders are set by the top-level
+ * folder.   - full 'filepath', i.e. the list of folders (both folderId and
+ * folderName) from     the root folder to the folder directly containing the
+ * Paper doc.  Note: If the Paper doc is not in any folder (aka unfiled) the
+ * response will be empty.
+ * @function Dropbox#paperDocsGetFolderInfo
+ * @arg {PaperRefPaperDoc} arg - The request parameters.
+ * @returns {Promise.<PaperFoldersContainingPaperDoc, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsGetFolderInfo = function (arg) {
+  return this.request('paper/docs/get_folder_info', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Return the list of all Paper docs according to the argument specifications.
+ * To iterate over through the full pagination, pass the cursor to
+ * docs/list/continue.
+ * @function Dropbox#paperDocsList
+ * @arg {PaperListPaperDocsArgs} arg - The request parameters.
+ * @returns {Promise.<PaperListPaperDocsResponse, Error.<void>>}
+ */
+routes.paperDocsList = function (arg) {
+  return this.request('paper/docs/list', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from docs/list, use this to paginate through
+ * all Paper doc.
+ * @function Dropbox#paperDocsListContinue
+ * @arg {PaperListPaperDocsContinueArgs} arg - The request parameters.
+ * @returns {Promise.<PaperListPaperDocsResponse, Error.<PaperListDocsCursorError>>}
+ */
+routes.paperDocsListContinue = function (arg) {
+  return this.request('paper/docs/list/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Permanently deletes the given Paper doc. This operation is final as the doc
+ * cannot be recovered.  Note: This action can be performed only by the doc
+ * owner.
+ * @function Dropbox#paperDocsPermanentlyDelete
+ * @arg {PaperRefPaperDoc} arg - The request parameters.
+ * @returns {Promise.<void, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsPermanentlyDelete = function (arg) {
+  return this.request('paper/docs/permanently_delete', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Gets the default sharing policy for the given Paper doc.
+ * @function Dropbox#paperDocsSharingPolicyGet
+ * @arg {PaperRefPaperDoc} arg - The request parameters.
+ * @returns {Promise.<PaperSharingPolicy, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsSharingPolicyGet = function (arg) {
+  return this.request('paper/docs/sharing_policy/get', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Sets the default sharing policy for the given Paper doc. The default
+ * 'team_sharing_policy' can be changed only by teams, omit this field for
+ * personal accounts.  Note: 'public_sharing_policy' cannot be set to the value
+ * 'disabled' because this setting can be changed only via the team admin
+ * console.
+ * @function Dropbox#paperDocsSharingPolicySet
+ * @arg {PaperPaperDocSharingPolicy} arg - The request parameters.
+ * @returns {Promise.<void, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsSharingPolicySet = function (arg) {
+  return this.request('paper/docs/sharing_policy/set', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Updates an existing Paper doc with the provided content.
+ * @function Dropbox#paperDocsUpdate
+ * @arg {PaperPaperDocUpdateArgs} arg - The request parameters.
+ * @returns {Promise.<PaperPaperDocCreateUpdateResult, Error.<PaperPaperDocUpdateError>>}
+ */
+routes.paperDocsUpdate = function (arg) {
+  return this.request('paper/docs/update', arg, 'user', 'api', 'upload');
+};
+
+/**
+ * Allows an owner or editor to add users to a Paper doc or change their
+ * permissions using their email address or Dropbox account ID.  Note: The Doc
+ * owner's permissions cannot be changed.
+ * @function Dropbox#paperDocsUsersAdd
+ * @arg {PaperAddPaperDocUser} arg - The request parameters.
+ * @returns {Promise.<Array.<PaperAddPaperDocUserMemberResult>, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsUsersAdd = function (arg) {
+  return this.request('paper/docs/users/add', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Lists all users who visited the Paper doc or users with explicit access. This
+ * call excludes users who have been removed. The list is sorted by the date of
+ * the visit or the share date. The list will include both users, the explicitly
+ * shared ones as well as those who came in using the Paper url link.
+ * @function Dropbox#paperDocsUsersList
+ * @arg {PaperListUsersOnPaperDocArgs} arg - The request parameters.
+ * @returns {Promise.<PaperListUsersOnPaperDocResponse, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsUsersList = function (arg) {
+  return this.request('paper/docs/users/list', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from docs/users/list, use this to paginate
+ * through all users on the Paper doc.
+ * @function Dropbox#paperDocsUsersListContinue
+ * @arg {PaperListUsersOnPaperDocContinueArgs} arg - The request parameters.
+ * @returns {Promise.<PaperListUsersOnPaperDocResponse, Error.<PaperListUsersCursorError>>}
+ */
+routes.paperDocsUsersListContinue = function (arg) {
+  return this.request('paper/docs/users/list/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Allows an owner or editor to remove users from a Paper doc using their email
+ * address or Dropbox account ID.  Note: Doc owner cannot be removed.
+ * @function Dropbox#paperDocsUsersRemove
+ * @arg {PaperRemovePaperDocUser} arg - The request parameters.
+ * @returns {Promise.<void, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsUsersRemove = function (arg) {
+  return this.request('paper/docs/users/remove', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Adds specified members to a file.
+ * @function Dropbox#sharingAddFileMember
+ * @arg {SharingAddFileMemberArgs} arg - The request parameters.
+ * @returns {Promise.<Array.<SharingFileMemberActionResult>, Error.<SharingAddFileMemberError>>}
+ */
+routes.sharingAddFileMember = function (arg) {
+  return this.request('sharing/add_file_member', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Allows an owner or editor (if the ACL update policy allows) of a shared
+ * folder to add another member. For the new member to get access to all the
+ * functionality for this folder, you will need to call mount_folder on their
+ * behalf. Apps must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingAddFolderMember
+ * @arg {SharingAddFolderMemberArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<SharingAddFolderMemberError>>}
+ */
+routes.sharingAddFolderMember = function (arg) {
+  return this.request('sharing/add_folder_member', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Identical to update_file_member but with less information returned.
+ * @function Dropbox#sharingChangeFileMemberAccess
+ * @deprecated
+ * @arg {SharingChangeFileMemberAccessArgs} arg - The request parameters.
+ * @returns {Promise.<SharingFileMemberActionResult, Error.<SharingFileMemberActionError>>}
+ */
+routes.sharingChangeFileMemberAccess = function (arg) {
+  return this.request('sharing/change_file_member_access', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job. Apps must have full Dropbox access
+ * to use this endpoint.
+ * @function Dropbox#sharingCheckJobStatus
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<SharingJobStatus, Error.<AsyncPollError>>}
+ */
+routes.sharingCheckJobStatus = function (arg) {
+  return this.request('sharing/check_job_status', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job for sharing a folder. Apps must
+ * have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingCheckRemoveMemberJobStatus
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<SharingRemoveMemberJobStatus, Error.<AsyncPollError>>}
+ */
+routes.sharingCheckRemoveMemberJobStatus = function (arg) {
+  return this.request('sharing/check_remove_member_job_status', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job for sharing a folder. Apps must
+ * have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingCheckShareJobStatus
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<SharingShareFolderJobStatus, Error.<AsyncPollError>>}
+ */
+routes.sharingCheckShareJobStatus = function (arg) {
+  return this.request('sharing/check_share_job_status', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Create a shared link. If a shared link already exists for the given path,
+ * that link is returned. Note that in the returned PathLinkMetadata, the
+ * PathLinkMetadata.url field is the shortened URL if
+ * CreateSharedLinkArg.short_url argument is set to true. Previously, it was
+ * technically possible to break a shared link by moving or renaming the
+ * corresponding file or folder. In the future, this will no longer be the case,
+ * so your app shouldn't rely on this behavior. Instead, if your app needs to
+ * revoke a shared link, use revoke_shared_link.
+ * @function Dropbox#sharingCreateSharedLink
+ * @deprecated
+ * @arg {SharingCreateSharedLinkArg} arg - The request parameters.
+ * @returns {Promise.<SharingPathLinkMetadata, Error.<SharingCreateSharedLinkError>>}
+ */
+routes.sharingCreateSharedLink = function (arg) {
+  return this.request('sharing/create_shared_link', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Create a shared link with custom settings. If no settings are given then the
+ * default visibility is RequestedVisibility.public (The resolved visibility,
+ * though, may depend on other aspects such as team and shared folder settings).
+ * @function Dropbox#sharingCreateSharedLinkWithSettings
+ * @arg {SharingCreateSharedLinkWithSettingsArg} arg - The request parameters.
+ * @returns {Promise.<(SharingFileLinkMetadata|SharingFolderLinkMetadata|SharingSharedLinkMetadata), Error.<SharingCreateSharedLinkWithSettingsError>>}
+ */
+routes.sharingCreateSharedLinkWithSettings = function (arg) {
+  return this.request('sharing/create_shared_link_with_settings', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns shared file metadata.
+ * @function Dropbox#sharingGetFileMetadata
+ * @arg {SharingGetFileMetadataArg} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFileMetadata, Error.<SharingGetFileMetadataError>>}
+ */
+routes.sharingGetFileMetadata = function (arg) {
+  return this.request('sharing/get_file_metadata', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns shared file metadata.
+ * @function Dropbox#sharingGetFileMetadataBatch
+ * @arg {SharingGetFileMetadataBatchArg} arg - The request parameters.
+ * @returns {Promise.<Array.<SharingGetFileMetadataBatchResult>, Error.<SharingSharingUserError>>}
+ */
+routes.sharingGetFileMetadataBatch = function (arg) {
+  return this.request('sharing/get_file_metadata/batch', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns shared folder metadata by its folder ID. Apps must have full Dropbox
+ * access to use this endpoint.
+ * @function Dropbox#sharingGetFolderMetadata
+ * @arg {SharingGetMetadataArgs} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFolderMetadata, Error.<SharingSharedFolderAccessError>>}
+ */
+routes.sharingGetFolderMetadata = function (arg) {
+  return this.request('sharing/get_folder_metadata', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Download the shared link's file from a user's Dropbox.
+ * @function Dropbox#sharingGetSharedLinkFile
+ * @arg {Object} arg - The request parameters.
+ * @returns {Promise.<(SharingFileLinkMetadata|SharingFolderLinkMetadata|SharingSharedLinkMetadata), Error.<SharingGetSharedLinkFileError>>}
+ */
+routes.sharingGetSharedLinkFile = function (arg) {
+  return this.request('sharing/get_shared_link_file', arg, 'user', 'content', 'download');
+};
+
+/**
+ * Get the shared link's metadata.
+ * @function Dropbox#sharingGetSharedLinkMetadata
+ * @arg {SharingGetSharedLinkMetadataArg} arg - The request parameters.
+ * @returns {Promise.<(SharingFileLinkMetadata|SharingFolderLinkMetadata|SharingSharedLinkMetadata), Error.<SharingSharedLinkError>>}
+ */
+routes.sharingGetSharedLinkMetadata = function (arg) {
+  return this.request('sharing/get_shared_link_metadata', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns a list of LinkMetadata objects for this user, including collection
+ * links. If no path is given, returns a list of all shared links for the
+ * current user, including collection links, up to a maximum of 1000 links. If a
+ * non-empty path is given, returns a list of all shared links that allow access
+ * to the given path.  Collection links are never returned in this case. Note
+ * that the url field in the response is never the shortened URL.
+ * @function Dropbox#sharingGetSharedLinks
+ * @deprecated
+ * @arg {SharingGetSharedLinksArg} arg - The request parameters.
+ * @returns {Promise.<SharingGetSharedLinksResult, Error.<SharingGetSharedLinksError>>}
+ */
+routes.sharingGetSharedLinks = function (arg) {
+  return this.request('sharing/get_shared_links', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Use to obtain the members who have been invited to a file, both inherited and
+ * uninherited members.
+ * @function Dropbox#sharingListFileMembers
+ * @arg {SharingListFileMembersArg} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFileMembers, Error.<SharingListFileMembersError>>}
+ */
+routes.sharingListFileMembers = function (arg) {
+  return this.request('sharing/list_file_members', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get members of multiple files at once. The arguments to this route are more
+ * limited, and the limit on query result size per file is more strict. To
+ * customize the results more, use the individual file endpoint. Inherited users
+ * and groups are not included in the result, and permissions are not returned
+ * for this endpoint.
+ * @function Dropbox#sharingListFileMembersBatch
+ * @arg {SharingListFileMembersBatchArg} arg - The request parameters.
+ * @returns {Promise.<Array.<SharingListFileMembersBatchResult>, Error.<SharingSharingUserError>>}
+ */
+routes.sharingListFileMembersBatch = function (arg) {
+  return this.request('sharing/list_file_members/batch', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from list_file_members or
+ * list_file_members/batch, use this to paginate through all shared file
+ * members.
+ * @function Dropbox#sharingListFileMembersContinue
+ * @arg {SharingListFileMembersContinueArg} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFileMembers, Error.<SharingListFileMembersContinueError>>}
+ */
+routes.sharingListFileMembersContinue = function (arg) {
+  return this.request('sharing/list_file_members/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns shared folder membership by its folder ID. Apps must have full
+ * Dropbox access to use this endpoint.
+ * @function Dropbox#sharingListFolderMembers
+ * @arg {SharingListFolderMembersArgs} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFolderMembers, Error.<SharingSharedFolderAccessError>>}
+ */
+routes.sharingListFolderMembers = function (arg) {
+  return this.request('sharing/list_folder_members', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from list_folder_members, use this to
+ * paginate through all shared folder members. Apps must have full Dropbox
+ * access to use this endpoint.
+ * @function Dropbox#sharingListFolderMembersContinue
+ * @arg {SharingListFolderMembersContinueArg} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFolderMembers, Error.<SharingListFolderMembersContinueError>>}
+ */
+routes.sharingListFolderMembersContinue = function (arg) {
+  return this.request('sharing/list_folder_members/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Return the list of all shared folders the current user has access to. Apps
+ * must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingListFolders
+ * @arg {SharingListFoldersArgs} arg - The request parameters.
+ * @returns {Promise.<SharingListFoldersResult, Error.<void>>}
+ */
+routes.sharingListFolders = function (arg) {
+  return this.request('sharing/list_folders', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from list_folders, use this to paginate
+ * through all shared folders. The cursor must come from a previous call to
+ * list_folders or list_folders/continue. Apps must have full Dropbox access to
+ * use this endpoint.
+ * @function Dropbox#sharingListFoldersContinue
+ * @arg {SharingListFoldersContinueArg} arg - The request parameters.
+ * @returns {Promise.<SharingListFoldersResult, Error.<SharingListFoldersContinueError>>}
+ */
+routes.sharingListFoldersContinue = function (arg) {
+  return this.request('sharing/list_folders/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Return the list of all shared folders the current user can mount or unmount.
+ * Apps must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingListMountableFolders
+ * @arg {SharingListFoldersArgs} arg - The request parameters.
+ * @returns {Promise.<SharingListFoldersResult, Error.<void>>}
+ */
+routes.sharingListMountableFolders = function (arg) {
+  return this.request('sharing/list_mountable_folders', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from list_mountable_folders, use this to
+ * paginate through all mountable shared folders. The cursor must come from a
+ * previous call to list_mountable_folders or list_mountable_folders/continue.
+ * Apps must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingListMountableFoldersContinue
+ * @arg {SharingListFoldersContinueArg} arg - The request parameters.
+ * @returns {Promise.<SharingListFoldersResult, Error.<SharingListFoldersContinueError>>}
+ */
+routes.sharingListMountableFoldersContinue = function (arg) {
+  return this.request('sharing/list_mountable_folders/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns a list of all files shared with current user.  Does not include files
+ * the user has received via shared folders, and does  not include unclaimed
+ * invitations.
+ * @function Dropbox#sharingListReceivedFiles
+ * @arg {SharingListFilesArg} arg - The request parameters.
+ * @returns {Promise.<SharingListFilesResult, Error.<SharingSharingUserError>>}
+ */
+routes.sharingListReceivedFiles = function (arg) {
+  return this.request('sharing/list_received_files', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get more results with a cursor from list_received_files.
+ * @function Dropbox#sharingListReceivedFilesContinue
+ * @arg {SharingListFilesContinueArg} arg - The request parameters.
+ * @returns {Promise.<SharingListFilesResult, Error.<SharingListFilesContinueError>>}
+ */
+routes.sharingListReceivedFilesContinue = function (arg) {
+  return this.request('sharing/list_received_files/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * List shared links of this user. If no path is given, returns a list of all
+ * shared links for the current user. If a non-empty path is given, returns a
+ * list of all shared links that allow access to the given path - direct links
+ * to the given path and links to parent folders of the given path. Links to
+ * parent folders can be suppressed by setting direct_only to true.
+ * @function Dropbox#sharingListSharedLinks
+ * @arg {SharingListSharedLinksArg} arg - The request parameters.
+ * @returns {Promise.<SharingListSharedLinksResult, Error.<SharingListSharedLinksError>>}
+ */
+routes.sharingListSharedLinks = function (arg) {
+  return this.request('sharing/list_shared_links', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Modify the shared link's settings. If the requested visibility conflict with
+ * the shared links policy of the team or the shared folder (in case the linked
+ * file is part of a shared folder) then the LinkPermissions.resolved_visibility
+ * of the returned SharedLinkMetadata will reflect the actual visibility of the
+ * shared link and the LinkPermissions.requested_visibility will reflect the
+ * requested visibility.
+ * @function Dropbox#sharingModifySharedLinkSettings
+ * @arg {SharingModifySharedLinkSettingsArgs} arg - The request parameters.
+ * @returns {Promise.<(SharingFileLinkMetadata|SharingFolderLinkMetadata|SharingSharedLinkMetadata), Error.<SharingModifySharedLinkSettingsError>>}
+ */
+routes.sharingModifySharedLinkSettings = function (arg) {
+  return this.request('sharing/modify_shared_link_settings', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * The current user mounts the designated folder. Mount a shared folder for a
+ * user after they have been added as a member. Once mounted, the shared folder
+ * will appear in their Dropbox. Apps must have full Dropbox access to use this
+ * endpoint.
+ * @function Dropbox#sharingMountFolder
+ * @arg {SharingMountFolderArg} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFolderMetadata, Error.<SharingMountFolderError>>}
+ */
+routes.sharingMountFolder = function (arg) {
+  return this.request('sharing/mount_folder', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * The current user relinquishes their membership in the designated file. Note
+ * that the current user may still have inherited access to this file through
+ * the parent folder. Apps must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingRelinquishFileMembership
+ * @arg {SharingRelinquishFileMembershipArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<SharingRelinquishFileMembershipError>>}
+ */
+routes.sharingRelinquishFileMembership = function (arg) {
+  return this.request('sharing/relinquish_file_membership', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * The current user relinquishes their membership in the designated shared
+ * folder and will no longer have access to the folder.  A folder owner cannot
+ * relinquish membership in their own folder. This will run synchronously if
+ * leave_a_copy is false, and asynchronously if leave_a_copy is true. Apps must
+ * have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingRelinquishFolderMembership
+ * @arg {SharingRelinquishFolderMembershipArg} arg - The request parameters.
+ * @returns {Promise.<AsyncLaunchEmptyResult, Error.<SharingRelinquishFolderMembershipError>>}
+ */
+routes.sharingRelinquishFolderMembership = function (arg) {
+  return this.request('sharing/relinquish_folder_membership', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Identical to remove_file_member_2 but with less information returned.
+ * @function Dropbox#sharingRemoveFileMember
+ * @deprecated
+ * @arg {SharingRemoveFileMemberArg} arg - The request parameters.
+ * @returns {Promise.<SharingFileMemberActionIndividualResult, Error.<SharingRemoveFileMemberError>>}
+ */
+routes.sharingRemoveFileMember = function (arg) {
+  return this.request('sharing/remove_file_member', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Removes a specified member from the file.
+ * @function Dropbox#sharingRemoveFileMember2
+ * @arg {SharingRemoveFileMemberArg} arg - The request parameters.
+ * @returns {Promise.<SharingFileMemberRemoveActionResult, Error.<SharingRemoveFileMemberError>>}
+ */
+routes.sharingRemoveFileMember2 = function (arg) {
+  return this.request('sharing/remove_file_member_2', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Allows an owner or editor (if the ACL update policy allows) of a shared
+ * folder to remove another member. Apps must have full Dropbox access to use
+ * this endpoint.
+ * @function Dropbox#sharingRemoveFolderMember
+ * @arg {SharingRemoveFolderMemberArg} arg - The request parameters.
+ * @returns {Promise.<AsyncLaunchResultBase, Error.<SharingRemoveFolderMemberError>>}
+ */
+routes.sharingRemoveFolderMember = function (arg) {
+  return this.request('sharing/remove_folder_member', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Revoke a shared link. Note that even after revoking a shared link to a file,
+ * the file may be accessible if there are shared links leading to any of the
+ * file parent folders. To list all shared links that enable access to a
+ * specific file, you can use the list_shared_links with the file as the
+ * ListSharedLinksArg.path argument.
+ * @function Dropbox#sharingRevokeSharedLink
+ * @arg {SharingRevokeSharedLinkArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<SharingRevokeSharedLinkError>>}
+ */
+routes.sharingRevokeSharedLink = function (arg) {
+  return this.request('sharing/revoke_shared_link', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Share a folder with collaborators. Most sharing will be completed
+ * synchronously. Large folders will be completed asynchronously. To make
+ * testing the async case repeatable, set `ShareFolderArg.force_async`. If a
+ * ShareFolderLaunch.async_job_id is returned, you'll need to call
+ * check_share_job_status until the action completes to get the metadata for the
+ * folder. Apps must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingShareFolder
+ * @arg {SharingShareFolderArg} arg - The request parameters.
+ * @returns {Promise.<SharingShareFolderLaunch, Error.<SharingShareFolderError>>}
+ */
+routes.sharingShareFolder = function (arg) {
+  return this.request('sharing/share_folder', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Transfer ownership of a shared folder to a member of the shared folder. User
+ * must have AccessLevel.owner access to the shared folder to perform a
+ * transfer. Apps must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingTransferFolder
+ * @arg {SharingTransferFolderArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<SharingTransferFolderError>>}
+ */
+routes.sharingTransferFolder = function (arg) {
+  return this.request('sharing/transfer_folder', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * The current user unmounts the designated folder. They can re-mount the folder
+ * at a later time using mount_folder. Apps must have full Dropbox access to use
+ * this endpoint.
+ * @function Dropbox#sharingUnmountFolder
+ * @arg {SharingUnmountFolderArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<SharingUnmountFolderError>>}
+ */
+routes.sharingUnmountFolder = function (arg) {
+  return this.request('sharing/unmount_folder', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Remove all members from this file. Does not remove inherited members.
+ * @function Dropbox#sharingUnshareFile
+ * @arg {SharingUnshareFileArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<SharingUnshareFileError>>}
+ */
+routes.sharingUnshareFile = function (arg) {
+  return this.request('sharing/unshare_file', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Allows a shared folder owner to unshare the folder. You'll need to call
+ * check_job_status to determine if the action has completed successfully. Apps
+ * must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingUnshareFolder
+ * @arg {SharingUnshareFolderArg} arg - The request parameters.
+ * @returns {Promise.<AsyncLaunchEmptyResult, Error.<SharingUnshareFolderError>>}
+ */
+routes.sharingUnshareFolder = function (arg) {
+  return this.request('sharing/unshare_folder', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Changes a member's access on a shared file.
+ * @function Dropbox#sharingUpdateFileMember
+ * @arg {SharingUpdateFileMemberArgs} arg - The request parameters.
+ * @returns {Promise.<SharingMemberAccessLevelResult, Error.<SharingFileMemberActionError>>}
+ */
+routes.sharingUpdateFileMember = function (arg) {
+  return this.request('sharing/update_file_member', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Allows an owner or editor of a shared folder to update another member's
+ * permissions. Apps must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingUpdateFolderMember
+ * @arg {SharingUpdateFolderMemberArg} arg - The request parameters.
+ * @returns {Promise.<SharingMemberAccessLevelResult, Error.<SharingUpdateFolderMemberError>>}
+ */
+routes.sharingUpdateFolderMember = function (arg) {
+  return this.request('sharing/update_folder_member', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Update the sharing policies for a shared folder. User must have
+ * AccessLevel.owner access to the shared folder to update its policies. Apps
+ * must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingUpdateFolderPolicy
+ * @arg {SharingUpdateFolderPolicyArg} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFolderMetadata, Error.<SharingUpdateFolderPolicyError>>}
+ */
+routes.sharingUpdateFolderPolicy = function (arg) {
+  return this.request('sharing/update_folder_policy', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Retrieves team events. Permission : Team Auditing.
+ * @function Dropbox#teamLogGetEvents
+ * @arg {TeamLogGetTeamEventsArg} arg - The request parameters.
+ * @returns {Promise.<TeamLogGetTeamEventsResult, Error.<TeamLogGetTeamEventsError>>}
+ */
+routes.teamLogGetEvents = function (arg) {
+  return this.request('team_log/get_events', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from get_events, use this to paginate
+ * through all events. Permission : Team Auditing.
+ * @function Dropbox#teamLogGetEventsContinue
+ * @arg {TeamLogGetTeamEventsContinueArg} arg - The request parameters.
+ * @returns {Promise.<TeamLogGetTeamEventsResult, Error.<TeamLogGetTeamEventsContinueError>>}
+ */
+routes.teamLogGetEventsContinue = function (arg) {
+  return this.request('team_log/get_events/continue', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Get information about a user's account.
+ * @function Dropbox#usersGetAccount
+ * @arg {UsersGetAccountArg} arg - The request parameters.
+ * @returns {Promise.<UsersBasicAccount, Error.<UsersGetAccountError>>}
+ */
+routes.usersGetAccount = function (arg) {
+  return this.request('users/get_account', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get information about multiple user accounts.  At most 300 accounts may be
+ * queried per request.
+ * @function Dropbox#usersGetAccountBatch
+ * @arg {UsersGetAccountBatchArg} arg - The request parameters.
+ * @returns {Promise.<Object, Error.<UsersGetAccountBatchError>>}
+ */
+routes.usersGetAccountBatch = function (arg) {
+  return this.request('users/get_account_batch', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get information about the current user's account.
+ * @function Dropbox#usersGetCurrentAccount
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<UsersFullAccount, Error.<void>>}
+ */
+routes.usersGetCurrentAccount = function (arg) {
+  return this.request('users/get_current_account', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get the space usage information for the current user's account.
+ * @function Dropbox#usersGetSpaceUsage
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<UsersSpaceUsage, Error.<void>>}
+ */
+routes.usersGetSpaceUsage = function (arg) {
+  return this.request('users/get_space_usage', arg, 'user', 'api', 'rpc');
+};
+
+var RPC = 'rpc';
+var UPLOAD = 'upload';
+var DOWNLOAD = 'download';
+
+function getSafeUnicode(c) {
+  var unicode = ('000' + c.charCodeAt(0).toString(16)).slice(-4);
+  return '\\u' + unicode;
+}
+
+/* global WorkerGlobalScope */
+function isWindowOrWorker() {
+  return typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope || typeof module === 'undefined';
+}
+
+function getBaseURL(host) {
+  return 'https://' + host + '.dropboxapi.com/2/';
+}
+
+// source https://www.dropboxforum.com/t5/API-support/HTTP-header-quot-Dropbox-API-Arg-quot-could-not-decode-input-as/m-p/173823/highlight/true#M6786
+function httpHeaderSafeJson(args) {
+  return JSON.stringify(args).replace(/[\u007f-\uffff]/g, getSafeUnicode);
+}
+
+var classCallCheck = function (instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+};
+
+var createClass = function () {
+  function defineProperties(target, props) {
+    for (var i = 0; i < props.length; i++) {
+      var descriptor = props[i];
+      descriptor.enumerable = descriptor.enumerable || false;
+      descriptor.configurable = true;
+      if ("value" in descriptor) descriptor.writable = true;
+      Object.defineProperty(target, descriptor.key, descriptor);
+    }
+  }
+
+  return function (Constructor, protoProps, staticProps) {
+    if (protoProps) defineProperties(Constructor.prototype, protoProps);
+    if (staticProps) defineProperties(Constructor, staticProps);
+    return Constructor;
+  };
+}();
+
+
+
+
+
+
+
+
+
+var inherits = function (subClass, superClass) {
+  if (typeof superClass !== "function" && superClass !== null) {
+    throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
+  }
+
+  subClass.prototype = Object.create(superClass && superClass.prototype, {
+    constructor: {
+      value: subClass,
+      enumerable: false,
+      writable: true,
+      configurable: true
+    }
+  });
+  if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
+};
+
+
+
+
+
+
+
+
+
+
+
+var possibleConstructorReturn = function (self, call) {
+  if (!self) {
+    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+  }
+
+  return call && (typeof call === "object" || typeof call === "function") ? call : self;
+};
+
+
+
+
+
+var slicedToArray = function () {
+  function sliceIterator(arr, i) {
+    var _arr = [];
+    var _n = true;
+    var _d = false;
+    var _e = undefined;
+
+    try {
+      for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
+        _arr.push(_s.value);
+
+        if (i && _arr.length === i) break;
+      }
+    } catch (err) {
+      _d = true;
+      _e = err;
+    } finally {
+      try {
+        if (!_n && _i["return"]) _i["return"]();
+      } finally {
+        if (_d) throw _e;
+      }
+    }
+
+    return _arr;
+  }
+
+  return function (arr, i) {
+    if (Array.isArray(arr)) {
+      return arr;
+    } else if (Symbol.iterator in Object(arr)) {
+      return sliceIterator(arr, i);
+    } else {
+      throw new TypeError("Invalid attempt to destructure non-iterable instance");
+    }
+  };
+}();
+
+function getDataFromConsumer(res) {
+  if (!res.ok) {
+    return res.text();
+  }
+
+  return isWindowOrWorker() ? res.blob() : res.buffer();
+}
+
+function responseHandler(res, data) {
+  if (!res.ok) {
+    // eslint-disable-next-line no-throw-literal
+    throw {
+      error: data,
+      response: res,
+      status: res.status
+    };
+  }
+
+  var result = JSON.parse(res.headers.get('dropbox-api-result'));
+
+  if (isWindowOrWorker()) {
+    result.fileBlob = data;
+  } else {
+    result.fileBinary = data;
+  }
+
+  return result;
+}
+
+function downloadRequest(path, args, auth, host, accessToken, options) {
+  if (auth !== 'user') {
+    throw new Error('Unexpected auth type: ' + auth);
+  }
+
+  var fetchOptions = {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + accessToken,
+      'Dropbox-API-Arg': httpHeaderSafeJson(args)
+    }
+  };
+
+  if (options) {
+    if (options.selectUser) {
+      fetchOptions.headers['Dropbox-API-Select-User'] = options.selectUser;
+    }
+    if (options.selectAdmin) {
+      fetchOptions.headers['Dropbox-API-Select-Admin'] = options.selectAdmin;
+    }
+  }
+
+  return fetch(getBaseURL(host) + path, fetchOptions).then(function (res) {
+    return getDataFromConsumer(res).then(function (data) {
+      return [res, data];
+    });
+  }).then(function (_ref) {
+    var _ref2 = slicedToArray(_ref, 2),
+        res = _ref2[0],
+        data = _ref2[1];
+
+    return responseHandler(res, data);
+  });
+}
+
+function parseBodyToType$1(res) {
+  var clone = res.clone();
+  return new Promise(function (resolve) {
+    res.json().then(function (data) {
+      return resolve(data);
+    }).catch(function () {
+      return clone.text().then(function (data) {
+        return resolve(data);
+      });
+    });
+  }).then(function (data) {
+    return [res, data];
+  });
+}
+
+function uploadRequest(path, args, auth, host, accessToken, options) {
+  if (auth !== 'user') {
+    throw new Error('Unexpected auth type: ' + auth);
+  }
+
+  var contents = args.contents;
+
+  delete args.contents;
+
+  var fetchOptions = {
+    body: contents,
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + accessToken,
+      'Content-Type': 'application/octet-stream',
+      'Dropbox-API-Arg': httpHeaderSafeJson(args)
+    }
+  };
+
+  if (options) {
+    if (options.selectUser) {
+      fetchOptions.headers['Dropbox-API-Select-User'] = options.selectUser;
+    }
+    if (options.selectAdmin) {
+      fetchOptions.headers['Dropbox-API-Select-Admin'] = options.selectAdmin;
+    }
+  }
+
+  return fetch(getBaseURL(host) + path, fetchOptions).then(function (res) {
+    return parseBodyToType$1(res);
+  }).then(function (_ref) {
+    var _ref2 = slicedToArray(_ref, 2),
+        res = _ref2[0],
+        data = _ref2[1];
+
+    // maintaining existing API for error codes not equal to 200 range
+    if (!res.ok) {
+      // eslint-disable-next-line no-throw-literal
+      throw {
+        error: data,
+        response: res,
+        status: res.status
+      };
+    }
+
+    return data;
+  });
+}
+
+function createCommonjsModule(fn, module) {
+	return module = { exports: {} }, fn(module, module.exports), module.exports;
+}
+
+var byteLength_1 = byteLength;
+var toByteArray_1 = toByteArray;
+var fromByteArray_1 = fromByteArray;
+
+var lookup = [];
+var revLookup = [];
+var Arr = typeof Uint8Array !== 'undefined' ? Uint8Array : Array;
+
+var code = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+for (var i = 0, len = code.length; i < len; ++i) {
+  lookup[i] = code[i];
+  revLookup[code.charCodeAt(i)] = i;
+}
+
+revLookup['-'.charCodeAt(0)] = 62;
+revLookup['_'.charCodeAt(0)] = 63;
+
+function placeHoldersCount (b64) {
+  var len = b64.length;
+  if (len % 4 > 0) {
+    throw new Error('Invalid string. Length must be a multiple of 4')
+  }
+
+  // the number of equal signs (place holders)
+  // if there are two placeholders, than the two characters before it
+  // represent one byte
+  // if there is only one, then the three characters before it represent 2 bytes
+  // this is just a cheap hack to not do indexOf twice
+  return b64[len - 2] === '=' ? 2 : b64[len - 1] === '=' ? 1 : 0
+}
+
+function byteLength (b64) {
+  // base64 is 4/3 + up to two characters of the original data
+  return (b64.length * 3 / 4) - placeHoldersCount(b64)
+}
+
+function toByteArray (b64) {
+  var i, l, tmp, placeHolders, arr;
+  var len = b64.length;
+  placeHolders = placeHoldersCount(b64);
+
+  arr = new Arr((len * 3 / 4) - placeHolders);
+
+  // if there are placeholders, only get up to the last complete 4 chars
+  l = placeHolders > 0 ? len - 4 : len;
+
+  var L = 0;
+
+  for (i = 0; i < l; i += 4) {
+    tmp = (revLookup[b64.charCodeAt(i)] << 18) | (revLookup[b64.charCodeAt(i + 1)] << 12) | (revLookup[b64.charCodeAt(i + 2)] << 6) | revLookup[b64.charCodeAt(i + 3)];
+    arr[L++] = (tmp >> 16) & 0xFF;
+    arr[L++] = (tmp >> 8) & 0xFF;
+    arr[L++] = tmp & 0xFF;
+  }
+
+  if (placeHolders === 2) {
+    tmp = (revLookup[b64.charCodeAt(i)] << 2) | (revLookup[b64.charCodeAt(i + 1)] >> 4);
+    arr[L++] = tmp & 0xFF;
+  } else if (placeHolders === 1) {
+    tmp = (revLookup[b64.charCodeAt(i)] << 10) | (revLookup[b64.charCodeAt(i + 1)] << 4) | (revLookup[b64.charCodeAt(i + 2)] >> 2);
+    arr[L++] = (tmp >> 8) & 0xFF;
+    arr[L++] = tmp & 0xFF;
+  }
+
+  return arr
+}
+
+function tripletToBase64 (num) {
+  return lookup[num >> 18 & 0x3F] + lookup[num >> 12 & 0x3F] + lookup[num >> 6 & 0x3F] + lookup[num & 0x3F]
+}
+
+function encodeChunk (uint8, start, end) {
+  var tmp;
+  var output = [];
+  for (var i = start; i < end; i += 3) {
+    tmp = (uint8[i] << 16) + (uint8[i + 1] << 8) + (uint8[i + 2]);
+    output.push(tripletToBase64(tmp));
+  }
+  return output.join('')
+}
+
+function fromByteArray (uint8) {
+  var tmp;
+  var len = uint8.length;
+  var extraBytes = len % 3; // if we have 1 byte left, pad 2 bytes
+  var output = '';
+  var parts = [];
+  var maxChunkLength = 16383; // must be multiple of 3
+
+  // go through the array every three bytes, we'll deal with trailing stuff later
+  for (var i = 0, len2 = len - extraBytes; i < len2; i += maxChunkLength) {
+    parts.push(encodeChunk(uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)));
+  }
+
+  // pad the end with zeros, but make sure to not forget the extra bytes
+  if (extraBytes === 1) {
+    tmp = uint8[len - 1];
+    output += lookup[tmp >> 2];
+    output += lookup[(tmp << 4) & 0x3F];
+    output += '==';
+  } else if (extraBytes === 2) {
+    tmp = (uint8[len - 2] << 8) + (uint8[len - 1]);
+    output += lookup[tmp >> 10];
+    output += lookup[(tmp >> 4) & 0x3F];
+    output += lookup[(tmp << 2) & 0x3F];
+    output += '=';
+  }
+
+  parts.push(output);
+
+  return parts.join('')
+}
+
+var base64Js = {
+	byteLength: byteLength_1,
+	toByteArray: toByteArray_1,
+	fromByteArray: fromByteArray_1
+};
+
+var read = function (buffer, offset, isLE, mLen, nBytes) {
+  var e, m;
+  var eLen = nBytes * 8 - mLen - 1;
+  var eMax = (1 << eLen) - 1;
+  var eBias = eMax >> 1;
+  var nBits = -7;
+  var i = isLE ? (nBytes - 1) : 0;
+  var d = isLE ? -1 : 1;
+  var s = buffer[offset + i];
+
+  i += d;
+
+  e = s & ((1 << (-nBits)) - 1);
+  s >>= (-nBits);
+  nBits += eLen;
+  for (; nBits > 0; e = e * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+
+  m = e & ((1 << (-nBits)) - 1);
+  e >>= (-nBits);
+  nBits += mLen;
+  for (; nBits > 0; m = m * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+
+  if (e === 0) {
+    e = 1 - eBias;
+  } else if (e === eMax) {
+    return m ? NaN : ((s ? -1 : 1) * Infinity)
+  } else {
+    m = m + Math.pow(2, mLen);
+    e = e - eBias;
+  }
+  return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
+};
+
+var write = function (buffer, value, offset, isLE, mLen, nBytes) {
+  var e, m, c;
+  var eLen = nBytes * 8 - mLen - 1;
+  var eMax = (1 << eLen) - 1;
+  var eBias = eMax >> 1;
+  var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0);
+  var i = isLE ? 0 : (nBytes - 1);
+  var d = isLE ? 1 : -1;
+  var s = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0;
+
+  value = Math.abs(value);
+
+  if (isNaN(value) || value === Infinity) {
+    m = isNaN(value) ? 1 : 0;
+    e = eMax;
+  } else {
+    e = Math.floor(Math.log(value) / Math.LN2);
+    if (value * (c = Math.pow(2, -e)) < 1) {
+      e--;
+      c *= 2;
+    }
+    if (e + eBias >= 1) {
+      value += rt / c;
+    } else {
+      value += rt * Math.pow(2, 1 - eBias);
+    }
+    if (value * c >= 2) {
+      e++;
+      c /= 2;
+    }
+
+    if (e + eBias >= eMax) {
+      m = 0;
+      e = eMax;
+    } else if (e + eBias >= 1) {
+      m = (value * c - 1) * Math.pow(2, mLen);
+      e = e + eBias;
+    } else {
+      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen);
+      e = 0;
+    }
+  }
+
+  for (; mLen >= 8; buffer[offset + i] = m & 0xff, i += d, m /= 256, mLen -= 8) {}
+
+  e = (e << mLen) | m;
+  eLen += mLen;
+  for (; eLen > 0; buffer[offset + i] = e & 0xff, i += d, e /= 256, eLen -= 8) {}
+
+  buffer[offset + i - d] |= s * 128;
+};
+
+var ieee754 = {
+	read: read,
+	write: write
+};
+
+var buffer = createCommonjsModule(function (module, exports) {
+/*!
+ * The buffer module from node.js, for the browser.
+ *
+ * @author   Feross Aboukhadijeh <https://feross.org>
+ * @license  MIT
+ */
+/* eslint-disable no-proto */
+
+'use strict';
+
+
+
+
+exports.Buffer = Buffer;
+exports.SlowBuffer = SlowBuffer;
+exports.INSPECT_MAX_BYTES = 50;
+
+var K_MAX_LENGTH = 0x7fffffff;
+exports.kMaxLength = K_MAX_LENGTH;
+
+/**
+ * If `Buffer.TYPED_ARRAY_SUPPORT`:
+ *   === true    Use Uint8Array implementation (fastest)
+ *   === false   Print warning and recommend using `buffer` v4.x which has an Object
+ *               implementation (most compatible, even IE6)
+ *
+ * Browsers that support typed arrays are IE 10+, Firefox 4+, Chrome 7+, Safari 5.1+,
+ * Opera 11.6+, iOS 4.2+.
+ *
+ * We report that the browser does not support typed arrays if the are not subclassable
+ * using __proto__. Firefox 4-29 lacks support for adding new properties to `Uint8Array`
+ * (See: https://bugzilla.mozilla.org/show_bug.cgi?id=695438). IE 10 lacks support
+ * for __proto__ and has a buggy typed array implementation.
+ */
+Buffer.TYPED_ARRAY_SUPPORT = typedArraySupport();
+
+if (!Buffer.TYPED_ARRAY_SUPPORT && typeof console !== 'undefined' &&
+    typeof console.error === 'function') {
+  console.error(
+    'This browser lacks typed array (Uint8Array) support which is required by ' +
+    '`buffer` v5.x. Use `buffer` v4.x if you require old browser support.'
+  );
+}
+
+function typedArraySupport () {
+  // Can typed array instances can be augmented?
+  try {
+    var arr = new Uint8Array(1);
+    arr.__proto__ = {__proto__: Uint8Array.prototype, foo: function () { return 42 }};
+    return arr.foo() === 42
+  } catch (e) {
+    return false
+  }
+}
+
+function createBuffer (length) {
+  if (length > K_MAX_LENGTH) {
+    throw new RangeError('Invalid typed array length')
+  }
+  // Return an augmented `Uint8Array` instance
+  var buf = new Uint8Array(length);
+  buf.__proto__ = Buffer.prototype;
+  return buf
+}
+
+/**
+ * The Buffer constructor returns instances of `Uint8Array` that have their
+ * prototype changed to `Buffer.prototype`. Furthermore, `Buffer` is a subclass of
+ * `Uint8Array`, so the returned instances will have all the node `Buffer` methods
+ * and the `Uint8Array` methods. Square bracket notation works as expected -- it
+ * returns a single octet.
+ *
+ * The `Uint8Array` prototype remains unmodified.
+ */
+
+function Buffer (arg, encodingOrOffset, length) {
+  // Common case.
+  if (typeof arg === 'number') {
+    if (typeof encodingOrOffset === 'string') {
+      throw new Error(
+        'If encoding is specified then the first argument must be a string'
+      )
+    }
+    return allocUnsafe(arg)
+  }
+  return from(arg, encodingOrOffset, length)
+}
+
+// Fix subarray() in ES2016. See: https://github.com/feross/buffer/pull/97
+if (typeof Symbol !== 'undefined' && Symbol.species &&
+    Buffer[Symbol.species] === Buffer) {
+  Object.defineProperty(Buffer, Symbol.species, {
+    value: null,
+    configurable: true,
+    enumerable: false,
+    writable: false
+  });
+}
+
+Buffer.poolSize = 8192; // not used by this implementation
+
+function from (value, encodingOrOffset, length) {
+  if (typeof value === 'number') {
+    throw new TypeError('"value" argument must not be a number')
+  }
+
+  if (isArrayBuffer(value)) {
+    return fromArrayBuffer(value, encodingOrOffset, length)
+  }
+
+  if (typeof value === 'string') {
+    return fromString(value, encodingOrOffset)
+  }
+
+  return fromObject(value)
+}
+
+/**
+ * Functionally equivalent to Buffer(arg, encoding) but throws a TypeError
+ * if value is a number.
+ * Buffer.from(str[, encoding])
+ * Buffer.from(array)
+ * Buffer.from(buffer)
+ * Buffer.from(arrayBuffer[, byteOffset[, length]])
+ **/
+Buffer.from = function (value, encodingOrOffset, length) {
+  return from(value, encodingOrOffset, length)
+};
+
+// Note: Change prototype *after* Buffer.from is defined to workaround Chrome bug:
+// https://github.com/feross/buffer/pull/148
+Buffer.prototype.__proto__ = Uint8Array.prototype;
+Buffer.__proto__ = Uint8Array;
+
+function assertSize (size) {
+  if (typeof size !== 'number') {
+    throw new TypeError('"size" argument must be a number')
+  } else if (size < 0) {
+    throw new RangeError('"size" argument must not be negative')
+  }
+}
+
+function alloc (size, fill, encoding) {
+  assertSize(size);
+  if (size <= 0) {
+    return createBuffer(size)
+  }
+  if (fill !== undefined) {
+    // Only pay attention to encoding if it's a string. This
+    // prevents accidentally sending in a number that would
+    // be interpretted as a start offset.
+    return typeof encoding === 'string'
+      ? createBuffer(size).fill(fill, encoding)
+      : createBuffer(size).fill(fill)
+  }
+  return createBuffer(size)
+}
+
+/**
+ * Creates a new filled Buffer instance.
+ * alloc(size[, fill[, encoding]])
+ **/
+Buffer.alloc = function (size, fill, encoding) {
+  return alloc(size, fill, encoding)
+};
+
+function allocUnsafe (size) {
+  assertSize(size);
+  return createBuffer(size < 0 ? 0 : checked(size) | 0)
+}
+
+/**
+ * Equivalent to Buffer(num), by default creates a non-zero-filled Buffer instance.
+ * */
+Buffer.allocUnsafe = function (size) {
+  return allocUnsafe(size)
+};
+/**
+ * Equivalent to SlowBuffer(num), by default creates a non-zero-filled Buffer instance.
+ */
+Buffer.allocUnsafeSlow = function (size) {
+  return allocUnsafe(size)
+};
+
+function fromString (string, encoding) {
+  if (typeof encoding !== 'string' || encoding === '') {
+    encoding = 'utf8';
+  }
+
+  if (!Buffer.isEncoding(encoding)) {
+    throw new TypeError('"encoding" must be a valid string encoding')
+  }
+
+  var length = byteLength(string, encoding) | 0;
+  var buf = createBuffer(length);
+
+  var actual = buf.write(string, encoding);
+
+  if (actual !== length) {
+    // Writing a hex string, for example, that contains invalid characters will
+    // cause everything after the first invalid character to be ignored. (e.g.
+    // 'abxxcd' will be treated as 'ab')
+    buf = buf.slice(0, actual);
+  }
+
+  return buf
+}
+
+function fromArrayLike (array) {
+  var length = array.length < 0 ? 0 : checked(array.length) | 0;
+  var buf = createBuffer(length);
+  for (var i = 0; i < length; i += 1) {
+    buf[i] = array[i] & 255;
+  }
+  return buf
+}
+
+function fromArrayBuffer (array, byteOffset, length) {
+  if (byteOffset < 0 || array.byteLength < byteOffset) {
+    throw new RangeError('\'offset\' is out of bounds')
+  }
+
+  if (array.byteLength < byteOffset + (length || 0)) {
+    throw new RangeError('\'length\' is out of bounds')
+  }
+
+  var buf;
+  if (byteOffset === undefined && length === undefined) {
+    buf = new Uint8Array(array);
+  } else if (length === undefined) {
+    buf = new Uint8Array(array, byteOffset);
+  } else {
+    buf = new Uint8Array(array, byteOffset, length);
+  }
+
+  // Return an augmented `Uint8Array` instance
+  buf.__proto__ = Buffer.prototype;
+  return buf
+}
+
+function fromObject (obj) {
+  if (Buffer.isBuffer(obj)) {
+    var len = checked(obj.length) | 0;
+    var buf = createBuffer(len);
+
+    if (buf.length === 0) {
+      return buf
+    }
+
+    obj.copy(buf, 0, 0, len);
+    return buf
+  }
+
+  if (obj) {
+    if (isArrayBufferView(obj) || 'length' in obj) {
+      if (typeof obj.length !== 'number' || numberIsNaN(obj.length)) {
+        return createBuffer(0)
+      }
+      return fromArrayLike(obj)
+    }
+
+    if (obj.type === 'Buffer' && Array.isArray(obj.data)) {
+      return fromArrayLike(obj.data)
+    }
+  }
+
+  throw new TypeError('First argument must be a string, Buffer, ArrayBuffer, Array, or array-like object.')
+}
+
+function checked (length) {
+  // Note: cannot use `length < K_MAX_LENGTH` here because that fails when
+  // length is NaN (which is otherwise coerced to zero.)
+  if (length >= K_MAX_LENGTH) {
+    throw new RangeError('Attempt to allocate Buffer larger than maximum ' +
+                         'size: 0x' + K_MAX_LENGTH.toString(16) + ' bytes')
+  }
+  return length | 0
+}
+
+function SlowBuffer (length) {
+  if (+length != length) { // eslint-disable-line eqeqeq
+    length = 0;
+  }
+  return Buffer.alloc(+length)
+}
+
+Buffer.isBuffer = function isBuffer (b) {
+  return b != null && b._isBuffer === true
+};
+
+Buffer.compare = function compare (a, b) {
+  if (!Buffer.isBuffer(a) || !Buffer.isBuffer(b)) {
+    throw new TypeError('Arguments must be Buffers')
+  }
+
+  if (a === b) return 0
+
+  var x = a.length;
+  var y = b.length;
+
+  for (var i = 0, len = Math.min(x, y); i < len; ++i) {
+    if (a[i] !== b[i]) {
+      x = a[i];
+      y = b[i];
+      break
+    }
+  }
+
+  if (x < y) return -1
+  if (y < x) return 1
+  return 0
+};
+
+Buffer.isEncoding = function isEncoding (encoding) {
+  switch (String(encoding).toLowerCase()) {
+    case 'hex':
+    case 'utf8':
+    case 'utf-8':
+    case 'ascii':
+    case 'latin1':
+    case 'binary':
+    case 'base64':
+    case 'ucs2':
+    case 'ucs-2':
+    case 'utf16le':
+    case 'utf-16le':
+      return true
+    default:
+      return false
+  }
+};
+
+Buffer.concat = function concat (list, length) {
+  if (!Array.isArray(list)) {
+    throw new TypeError('"list" argument must be an Array of Buffers')
+  }
+
+  if (list.length === 0) {
+    return Buffer.alloc(0)
+  }
+
+  var i;
+  if (length === undefined) {
+    length = 0;
+    for (i = 0; i < list.length; ++i) {
+      length += list[i].length;
+    }
+  }
+
+  var buffer = Buffer.allocUnsafe(length);
+  var pos = 0;
+  for (i = 0; i < list.length; ++i) {
+    var buf = list[i];
+    if (!Buffer.isBuffer(buf)) {
+      throw new TypeError('"list" argument must be an Array of Buffers')
+    }
+    buf.copy(buffer, pos);
+    pos += buf.length;
+  }
+  return buffer
+};
+
+function byteLength (string, encoding) {
+  if (Buffer.isBuffer(string)) {
+    return string.length
+  }
+  if (isArrayBufferView(string) || isArrayBuffer(string)) {
+    return string.byteLength
+  }
+  if (typeof string !== 'string') {
+    string = '' + string;
+  }
+
+  var len = string.length;
+  if (len === 0) return 0
+
+  // Use a for loop to avoid recursion
+  var loweredCase = false;
+  for (;;) {
+    switch (encoding) {
+      case 'ascii':
+      case 'latin1':
+      case 'binary':
+        return len
+      case 'utf8':
+      case 'utf-8':
+      case undefined:
+        return utf8ToBytes(string).length
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return len * 2
+      case 'hex':
+        return len >>> 1
+      case 'base64':
+        return base64ToBytes(string).length
+      default:
+        if (loweredCase) return utf8ToBytes(string).length // assume utf8
+        encoding = ('' + encoding).toLowerCase();
+        loweredCase = true;
+    }
+  }
+}
+Buffer.byteLength = byteLength;
+
+function slowToString (encoding, start, end) {
+  var loweredCase = false;
+
+  // No need to verify that "this.length <= MAX_UINT32" since it's a read-only
+  // property of a typed array.
+
+  // This behaves neither like String nor Uint8Array in that we set start/end
+  // to their upper/lower bounds if the value passed is out of range.
+  // undefined is handled specially as per ECMA-262 6th Edition,
+  // Section 13.3.3.7 Runtime Semantics: KeyedBindingInitialization.
+  if (start === undefined || start < 0) {
+    start = 0;
+  }
+  // Return early if start > this.length. Done here to prevent potential uint32
+  // coercion fail below.
+  if (start > this.length) {
+    return ''
+  }
+
+  if (end === undefined || end > this.length) {
+    end = this.length;
+  }
+
+  if (end <= 0) {
+    return ''
+  }
+
+  // Force coersion to uint32. This will also coerce falsey/NaN values to 0.
+  end >>>= 0;
+  start >>>= 0;
+
+  if (end <= start) {
+    return ''
+  }
+
+  if (!encoding) encoding = 'utf8';
+
+  while (true) {
+    switch (encoding) {
+      case 'hex':
+        return hexSlice(this, start, end)
+
+      case 'utf8':
+      case 'utf-8':
+        return utf8Slice(this, start, end)
+
+      case 'ascii':
+        return asciiSlice(this, start, end)
+
+      case 'latin1':
+      case 'binary':
+        return latin1Slice(this, start, end)
+
+      case 'base64':
+        return base64Slice(this, start, end)
+
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return utf16leSlice(this, start, end)
+
+      default:
+        if (loweredCase) throw new TypeError('Unknown encoding: ' + encoding)
+        encoding = (encoding + '').toLowerCase();
+        loweredCase = true;
+    }
+  }
+}
+
+// This property is used by `Buffer.isBuffer` (and the `is-buffer` npm package)
+// to detect a Buffer instance. It's not possible to use `instanceof Buffer`
+// reliably in a browserify context because there could be multiple different
+// copies of the 'buffer' package in use. This method works even for Buffer
+// instances that were created from another copy of the `buffer` package.
+// See: https://github.com/feross/buffer/issues/154
+Buffer.prototype._isBuffer = true;
+
+function swap (b, n, m) {
+  var i = b[n];
+  b[n] = b[m];
+  b[m] = i;
+}
+
+Buffer.prototype.swap16 = function swap16 () {
+  var len = this.length;
+  if (len % 2 !== 0) {
+    throw new RangeError('Buffer size must be a multiple of 16-bits')
+  }
+  for (var i = 0; i < len; i += 2) {
+    swap(this, i, i + 1);
+  }
+  return this
+};
+
+Buffer.prototype.swap32 = function swap32 () {
+  var len = this.length;
+  if (len % 4 !== 0) {
+    throw new RangeError('Buffer size must be a multiple of 32-bits')
+  }
+  for (var i = 0; i < len; i += 4) {
+    swap(this, i, i + 3);
+    swap(this, i + 1, i + 2);
+  }
+  return this
+};
+
+Buffer.prototype.swap64 = function swap64 () {
+  var len = this.length;
+  if (len % 8 !== 0) {
+    throw new RangeError('Buffer size must be a multiple of 64-bits')
+  }
+  for (var i = 0; i < len; i += 8) {
+    swap(this, i, i + 7);
+    swap(this, i + 1, i + 6);
+    swap(this, i + 2, i + 5);
+    swap(this, i + 3, i + 4);
+  }
+  return this
+};
+
+Buffer.prototype.toString = function toString () {
+  var length = this.length;
+  if (length === 0) return ''
+  if (arguments.length === 0) return utf8Slice(this, 0, length)
+  return slowToString.apply(this, arguments)
+};
+
+Buffer.prototype.equals = function equals (b) {
+  if (!Buffer.isBuffer(b)) throw new TypeError('Argument must be a Buffer')
+  if (this === b) return true
+  return Buffer.compare(this, b) === 0
+};
+
+Buffer.prototype.inspect = function inspect () {
+  var str = '';
+  var max = exports.INSPECT_MAX_BYTES;
+  if (this.length > 0) {
+    str = this.toString('hex', 0, max).match(/.{2}/g).join(' ');
+    if (this.length > max) str += ' ... ';
+  }
+  return '<Buffer ' + str + '>'
+};
+
+Buffer.prototype.compare = function compare (target, start, end, thisStart, thisEnd) {
+  if (!Buffer.isBuffer(target)) {
+    throw new TypeError('Argument must be a Buffer')
+  }
+
+  if (start === undefined) {
+    start = 0;
+  }
+  if (end === undefined) {
+    end = target ? target.length : 0;
+  }
+  if (thisStart === undefined) {
+    thisStart = 0;
+  }
+  if (thisEnd === undefined) {
+    thisEnd = this.length;
+  }
+
+  if (start < 0 || end > target.length || thisStart < 0 || thisEnd > this.length) {
+    throw new RangeError('out of range index')
+  }
+
+  if (thisStart >= thisEnd && start >= end) {
+    return 0
+  }
+  if (thisStart >= thisEnd) {
+    return -1
+  }
+  if (start >= end) {
+    return 1
+  }
+
+  start >>>= 0;
+  end >>>= 0;
+  thisStart >>>= 0;
+  thisEnd >>>= 0;
+
+  if (this === target) return 0
+
+  var x = thisEnd - thisStart;
+  var y = end - start;
+  var len = Math.min(x, y);
+
+  var thisCopy = this.slice(thisStart, thisEnd);
+  var targetCopy = target.slice(start, end);
+
+  for (var i = 0; i < len; ++i) {
+    if (thisCopy[i] !== targetCopy[i]) {
+      x = thisCopy[i];
+      y = targetCopy[i];
+      break
+    }
+  }
+
+  if (x < y) return -1
+  if (y < x) return 1
+  return 0
+};
+
+// Finds either the first index of `val` in `buffer` at offset >= `byteOffset`,
+// OR the last index of `val` in `buffer` at offset <= `byteOffset`.
+//
+// Arguments:
+// - buffer - a Buffer to search
+// - val - a string, Buffer, or number
+// - byteOffset - an index into `buffer`; will be clamped to an int32
+// - encoding - an optional encoding, relevant is val is a string
+// - dir - true for indexOf, false for lastIndexOf
+function bidirectionalIndexOf (buffer, val, byteOffset, encoding, dir) {
+  // Empty buffer means no match
+  if (buffer.length === 0) return -1
+
+  // Normalize byteOffset
+  if (typeof byteOffset === 'string') {
+    encoding = byteOffset;
+    byteOffset = 0;
+  } else if (byteOffset > 0x7fffffff) {
+    byteOffset = 0x7fffffff;
+  } else if (byteOffset < -0x80000000) {
+    byteOffset = -0x80000000;
+  }
+  byteOffset = +byteOffset;  // Coerce to Number.
+  if (numberIsNaN(byteOffset)) {
+    // byteOffset: it it's undefined, null, NaN, "foo", etc, search whole buffer
+    byteOffset = dir ? 0 : (buffer.length - 1);
+  }
+
+  // Normalize byteOffset: negative offsets start from the end of the buffer
+  if (byteOffset < 0) byteOffset = buffer.length + byteOffset;
+  if (byteOffset >= buffer.length) {
+    if (dir) return -1
+    else byteOffset = buffer.length - 1;
+  } else if (byteOffset < 0) {
+    if (dir) byteOffset = 0;
+    else return -1
+  }
+
+  // Normalize val
+  if (typeof val === 'string') {
+    val = Buffer.from(val, encoding);
+  }
+
+  // Finally, search either indexOf (if dir is true) or lastIndexOf
+  if (Buffer.isBuffer(val)) {
+    // Special case: looking for empty string/buffer always fails
+    if (val.length === 0) {
+      return -1
+    }
+    return arrayIndexOf(buffer, val, byteOffset, encoding, dir)
+  } else if (typeof val === 'number') {
+    val = val & 0xFF; // Search for a byte value [0-255]
+    if (typeof Uint8Array.prototype.indexOf === 'function') {
+      if (dir) {
+        return Uint8Array.prototype.indexOf.call(buffer, val, byteOffset)
+      } else {
+        return Uint8Array.prototype.lastIndexOf.call(buffer, val, byteOffset)
+      }
+    }
+    return arrayIndexOf(buffer, [ val ], byteOffset, encoding, dir)
+  }
+
+  throw new TypeError('val must be string, number or Buffer')
+}
+
+function arrayIndexOf (arr, val, byteOffset, encoding, dir) {
+  var indexSize = 1;
+  var arrLength = arr.length;
+  var valLength = val.length;
+
+  if (encoding !== undefined) {
+    encoding = String(encoding).toLowerCase();
+    if (encoding === 'ucs2' || encoding === 'ucs-2' ||
+        encoding === 'utf16le' || encoding === 'utf-16le') {
+      if (arr.length < 2 || val.length < 2) {
+        return -1
+      }
+      indexSize = 2;
+      arrLength /= 2;
+      valLength /= 2;
+      byteOffset /= 2;
+    }
+  }
+
+  function read (buf, i) {
+    if (indexSize === 1) {
+      return buf[i]
+    } else {
+      return buf.readUInt16BE(i * indexSize)
+    }
+  }
+
+  var i;
+  if (dir) {
+    var foundIndex = -1;
+    for (i = byteOffset; i < arrLength; i++) {
+      if (read(arr, i) === read(val, foundIndex === -1 ? 0 : i - foundIndex)) {
+        if (foundIndex === -1) foundIndex = i;
+        if (i - foundIndex + 1 === valLength) return foundIndex * indexSize
+      } else {
+        if (foundIndex !== -1) i -= i - foundIndex;
+        foundIndex = -1;
+      }
+    }
+  } else {
+    if (byteOffset + valLength > arrLength) byteOffset = arrLength - valLength;
+    for (i = byteOffset; i >= 0; i--) {
+      var found = true;
+      for (var j = 0; j < valLength; j++) {
+        if (read(arr, i + j) !== read(val, j)) {
+          found = false;
+          break
+        }
+      }
+      if (found) return i
+    }
+  }
+
+  return -1
+}
+
+Buffer.prototype.includes = function includes (val, byteOffset, encoding) {
+  return this.indexOf(val, byteOffset, encoding) !== -1
+};
+
+Buffer.prototype.indexOf = function indexOf (val, byteOffset, encoding) {
+  return bidirectionalIndexOf(this, val, byteOffset, encoding, true)
+};
+
+Buffer.prototype.lastIndexOf = function lastIndexOf (val, byteOffset, encoding) {
+  return bidirectionalIndexOf(this, val, byteOffset, encoding, false)
+};
+
+function hexWrite (buf, string, offset, length) {
+  offset = Number(offset) || 0;
+  var remaining = buf.length - offset;
+  if (!length) {
+    length = remaining;
+  } else {
+    length = Number(length);
+    if (length > remaining) {
+      length = remaining;
+    }
+  }
+
+  // must be an even number of digits
+  var strLen = string.length;
+  if (strLen % 2 !== 0) throw new TypeError('Invalid hex string')
+
+  if (length > strLen / 2) {
+    length = strLen / 2;
+  }
+  for (var i = 0; i < length; ++i) {
+    var parsed = parseInt(string.substr(i * 2, 2), 16);
+    if (numberIsNaN(parsed)) return i
+    buf[offset + i] = parsed;
+  }
+  return i
+}
+
+function utf8Write (buf, string, offset, length) {
+  return blitBuffer(utf8ToBytes(string, buf.length - offset), buf, offset, length)
+}
+
+function asciiWrite (buf, string, offset, length) {
+  return blitBuffer(asciiToBytes(string), buf, offset, length)
+}
+
+function latin1Write (buf, string, offset, length) {
+  return asciiWrite(buf, string, offset, length)
+}
+
+function base64Write (buf, string, offset, length) {
+  return blitBuffer(base64ToBytes(string), buf, offset, length)
+}
+
+function ucs2Write (buf, string, offset, length) {
+  return blitBuffer(utf16leToBytes(string, buf.length - offset), buf, offset, length)
+}
+
+Buffer.prototype.write = function write (string, offset, length, encoding) {
+  // Buffer#write(string)
+  if (offset === undefined) {
+    encoding = 'utf8';
+    length = this.length;
+    offset = 0;
+  // Buffer#write(string, encoding)
+  } else if (length === undefined && typeof offset === 'string') {
+    encoding = offset;
+    length = this.length;
+    offset = 0;
+  // Buffer#write(string, offset[, length][, encoding])
+  } else if (isFinite(offset)) {
+    offset = offset >>> 0;
+    if (isFinite(length)) {
+      length = length >>> 0;
+      if (encoding === undefined) encoding = 'utf8';
+    } else {
+      encoding = length;
+      length = undefined;
+    }
+  } else {
+    throw new Error(
+      'Buffer.write(string, encoding, offset[, length]) is no longer supported'
+    )
+  }
+
+  var remaining = this.length - offset;
+  if (length === undefined || length > remaining) length = remaining;
+
+  if ((string.length > 0 && (length < 0 || offset < 0)) || offset > this.length) {
+    throw new RangeError('Attempt to write outside buffer bounds')
+  }
+
+  if (!encoding) encoding = 'utf8';
+
+  var loweredCase = false;
+  for (;;) {
+    switch (encoding) {
+      case 'hex':
+        return hexWrite(this, string, offset, length)
+
+      case 'utf8':
+      case 'utf-8':
+        return utf8Write(this, string, offset, length)
+
+      case 'ascii':
+        return asciiWrite(this, string, offset, length)
+
+      case 'latin1':
+      case 'binary':
+        return latin1Write(this, string, offset, length)
+
+      case 'base64':
+        // Warning: maxLength not taken into account in base64Write
+        return base64Write(this, string, offset, length)
+
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return ucs2Write(this, string, offset, length)
+
+      default:
+        if (loweredCase) throw new TypeError('Unknown encoding: ' + encoding)
+        encoding = ('' + encoding).toLowerCase();
+        loweredCase = true;
+    }
+  }
+};
+
+Buffer.prototype.toJSON = function toJSON () {
+  return {
+    type: 'Buffer',
+    data: Array.prototype.slice.call(this._arr || this, 0)
+  }
+};
+
+function base64Slice (buf, start, end) {
+  if (start === 0 && end === buf.length) {
+    return base64Js.fromByteArray(buf)
+  } else {
+    return base64Js.fromByteArray(buf.slice(start, end))
+  }
+}
+
+function utf8Slice (buf, start, end) {
+  end = Math.min(buf.length, end);
+  var res = [];
+
+  var i = start;
+  while (i < end) {
+    var firstByte = buf[i];
+    var codePoint = null;
+    var bytesPerSequence = (firstByte > 0xEF) ? 4
+      : (firstByte > 0xDF) ? 3
+      : (firstByte > 0xBF) ? 2
+      : 1;
+
+    if (i + bytesPerSequence <= end) {
+      var secondByte, thirdByte, fourthByte, tempCodePoint;
+
+      switch (bytesPerSequence) {
+        case 1:
+          if (firstByte < 0x80) {
+            codePoint = firstByte;
+          }
+          break
+        case 2:
+          secondByte = buf[i + 1];
+          if ((secondByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0x1F) << 0x6 | (secondByte & 0x3F);
+            if (tempCodePoint > 0x7F) {
+              codePoint = tempCodePoint;
+            }
+          }
+          break
+        case 3:
+          secondByte = buf[i + 1];
+          thirdByte = buf[i + 2];
+          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0xF) << 0xC | (secondByte & 0x3F) << 0x6 | (thirdByte & 0x3F);
+            if (tempCodePoint > 0x7FF && (tempCodePoint < 0xD800 || tempCodePoint > 0xDFFF)) {
+              codePoint = tempCodePoint;
+            }
+          }
+          break
+        case 4:
+          secondByte = buf[i + 1];
+          thirdByte = buf[i + 2];
+          fourthByte = buf[i + 3];
+          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80 && (fourthByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0xF) << 0x12 | (secondByte & 0x3F) << 0xC | (thirdByte & 0x3F) << 0x6 | (fourthByte & 0x3F);
+            if (tempCodePoint > 0xFFFF && tempCodePoint < 0x110000) {
+              codePoint = tempCodePoint;
+            }
+          }
+      }
+    }
+
+    if (codePoint === null) {
+      // we did not generate a valid codePoint so insert a
+      // replacement char (U+FFFD) and advance only 1 byte
+      codePoint = 0xFFFD;
+      bytesPerSequence = 1;
+    } else if (codePoint > 0xFFFF) {
+      // encode to utf16 (surrogate pair dance)
+      codePoint -= 0x10000;
+      res.push(codePoint >>> 10 & 0x3FF | 0xD800);
+      codePoint = 0xDC00 | codePoint & 0x3FF;
+    }
+
+    res.push(codePoint);
+    i += bytesPerSequence;
+  }
+
+  return decodeCodePointsArray(res)
+}
+
+// Based on http://stackoverflow.com/a/22747272/680742, the browser with
+// the lowest limit is Chrome, with 0x10000 args.
+// We go 1 magnitude less, for safety
+var MAX_ARGUMENTS_LENGTH = 0x1000;
+
+function decodeCodePointsArray (codePoints) {
+  var len = codePoints.length;
+  if (len <= MAX_ARGUMENTS_LENGTH) {
+    return String.fromCharCode.apply(String, codePoints) // avoid extra slice()
+  }
+
+  // Decode in chunks to avoid "call stack size exceeded".
+  var res = '';
+  var i = 0;
+  while (i < len) {
+    res += String.fromCharCode.apply(
+      String,
+      codePoints.slice(i, i += MAX_ARGUMENTS_LENGTH)
+    );
+  }
+  return res
+}
+
+function asciiSlice (buf, start, end) {
+  var ret = '';
+  end = Math.min(buf.length, end);
+
+  for (var i = start; i < end; ++i) {
+    ret += String.fromCharCode(buf[i] & 0x7F);
+  }
+  return ret
+}
+
+function latin1Slice (buf, start, end) {
+  var ret = '';
+  end = Math.min(buf.length, end);
+
+  for (var i = start; i < end; ++i) {
+    ret += String.fromCharCode(buf[i]);
+  }
+  return ret
+}
+
+function hexSlice (buf, start, end) {
+  var len = buf.length;
+
+  if (!start || start < 0) start = 0;
+  if (!end || end < 0 || end > len) end = len;
+
+  var out = '';
+  for (var i = start; i < end; ++i) {
+    out += toHex(buf[i]);
+  }
+  return out
+}
+
+function utf16leSlice (buf, start, end) {
+  var bytes = buf.slice(start, end);
+  var res = '';
+  for (var i = 0; i < bytes.length; i += 2) {
+    res += String.fromCharCode(bytes[i] + (bytes[i + 1] * 256));
+  }
+  return res
+}
+
+Buffer.prototype.slice = function slice (start, end) {
+  var len = this.length;
+  start = ~~start;
+  end = end === undefined ? len : ~~end;
+
+  if (start < 0) {
+    start += len;
+    if (start < 0) start = 0;
+  } else if (start > len) {
+    start = len;
+  }
+
+  if (end < 0) {
+    end += len;
+    if (end < 0) end = 0;
+  } else if (end > len) {
+    end = len;
+  }
+
+  if (end < start) end = start;
+
+  var newBuf = this.subarray(start, end);
+  // Return an augmented `Uint8Array` instance
+  newBuf.__proto__ = Buffer.prototype;
+  return newBuf
+};
+
+/*
+ * Need to make sure that buffer isn't trying to write out of bounds.
+ */
+function checkOffset (offset, ext, length) {
+  if ((offset % 1) !== 0 || offset < 0) throw new RangeError('offset is not uint')
+  if (offset + ext > length) throw new RangeError('Trying to access beyond buffer length')
+}
+
+Buffer.prototype.readUIntLE = function readUIntLE (offset, byteLength, noAssert) {
+  offset = offset >>> 0;
+  byteLength = byteLength >>> 0;
+  if (!noAssert) checkOffset(offset, byteLength, this.length);
+
+  var val = this[offset];
+  var mul = 1;
+  var i = 0;
+  while (++i < byteLength && (mul *= 0x100)) {
+    val += this[offset + i] * mul;
+  }
+
+  return val
+};
+
+Buffer.prototype.readUIntBE = function readUIntBE (offset, byteLength, noAssert) {
+  offset = offset >>> 0;
+  byteLength = byteLength >>> 0;
+  if (!noAssert) {
+    checkOffset(offset, byteLength, this.length);
+  }
+
+  var val = this[offset + --byteLength];
+  var mul = 1;
+  while (byteLength > 0 && (mul *= 0x100)) {
+    val += this[offset + --byteLength] * mul;
+  }
+
+  return val
+};
+
+Buffer.prototype.readUInt8 = function readUInt8 (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 1, this.length);
+  return this[offset]
+};
+
+Buffer.prototype.readUInt16LE = function readUInt16LE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 2, this.length);
+  return this[offset] | (this[offset + 1] << 8)
+};
+
+Buffer.prototype.readUInt16BE = function readUInt16BE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 2, this.length);
+  return (this[offset] << 8) | this[offset + 1]
+};
+
+Buffer.prototype.readUInt32LE = function readUInt32LE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 4, this.length);
+
+  return ((this[offset]) |
+      (this[offset + 1] << 8) |
+      (this[offset + 2] << 16)) +
+      (this[offset + 3] * 0x1000000)
+};
+
+Buffer.prototype.readUInt32BE = function readUInt32BE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 4, this.length);
+
+  return (this[offset] * 0x1000000) +
+    ((this[offset + 1] << 16) |
+    (this[offset + 2] << 8) |
+    this[offset + 3])
+};
+
+Buffer.prototype.readIntLE = function readIntLE (offset, byteLength, noAssert) {
+  offset = offset >>> 0;
+  byteLength = byteLength >>> 0;
+  if (!noAssert) checkOffset(offset, byteLength, this.length);
+
+  var val = this[offset];
+  var mul = 1;
+  var i = 0;
+  while (++i < byteLength && (mul *= 0x100)) {
+    val += this[offset + i] * mul;
+  }
+  mul *= 0x80;
+
+  if (val >= mul) val -= Math.pow(2, 8 * byteLength);
+
+  return val
+};
+
+Buffer.prototype.readIntBE = function readIntBE (offset, byteLength, noAssert) {
+  offset = offset >>> 0;
+  byteLength = byteLength >>> 0;
+  if (!noAssert) checkOffset(offset, byteLength, this.length);
+
+  var i = byteLength;
+  var mul = 1;
+  var val = this[offset + --i];
+  while (i > 0 && (mul *= 0x100)) {
+    val += this[offset + --i] * mul;
+  }
+  mul *= 0x80;
+
+  if (val >= mul) val -= Math.pow(2, 8 * byteLength);
+
+  return val
+};
+
+Buffer.prototype.readInt8 = function readInt8 (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 1, this.length);
+  if (!(this[offset] & 0x80)) return (this[offset])
+  return ((0xff - this[offset] + 1) * -1)
+};
+
+Buffer.prototype.readInt16LE = function readInt16LE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 2, this.length);
+  var val = this[offset] | (this[offset + 1] << 8);
+  return (val & 0x8000) ? val | 0xFFFF0000 : val
+};
+
+Buffer.prototype.readInt16BE = function readInt16BE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 2, this.length);
+  var val = this[offset + 1] | (this[offset] << 8);
+  return (val & 0x8000) ? val | 0xFFFF0000 : val
+};
+
+Buffer.prototype.readInt32LE = function readInt32LE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 4, this.length);
+
+  return (this[offset]) |
+    (this[offset + 1] << 8) |
+    (this[offset + 2] << 16) |
+    (this[offset + 3] << 24)
+};
+
+Buffer.prototype.readInt32BE = function readInt32BE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 4, this.length);
+
+  return (this[offset] << 24) |
+    (this[offset + 1] << 16) |
+    (this[offset + 2] << 8) |
+    (this[offset + 3])
+};
+
+Buffer.prototype.readFloatLE = function readFloatLE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 4, this.length);
+  return ieee754.read(this, offset, true, 23, 4)
+};
+
+Buffer.prototype.readFloatBE = function readFloatBE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 4, this.length);
+  return ieee754.read(this, offset, false, 23, 4)
+};
+
+Buffer.prototype.readDoubleLE = function readDoubleLE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 8, this.length);
+  return ieee754.read(this, offset, true, 52, 8)
+};
+
+Buffer.prototype.readDoubleBE = function readDoubleBE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 8, this.length);
+  return ieee754.read(this, offset, false, 52, 8)
+};
+
+function checkInt (buf, value, offset, ext, max, min) {
+  if (!Buffer.isBuffer(buf)) throw new TypeError('"buffer" argument must be a Buffer instance')
+  if (value > max || value < min) throw new RangeError('"value" argument is out of bounds')
+  if (offset + ext > buf.length) throw new RangeError('Index out of range')
+}
+
+Buffer.prototype.writeUIntLE = function writeUIntLE (value, offset, byteLength, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  byteLength = byteLength >>> 0;
+  if (!noAssert) {
+    var maxBytes = Math.pow(2, 8 * byteLength) - 1;
+    checkInt(this, value, offset, byteLength, maxBytes, 0);
+  }
+
+  var mul = 1;
+  var i = 0;
+  this[offset] = value & 0xFF;
+  while (++i < byteLength && (mul *= 0x100)) {
+    this[offset + i] = (value / mul) & 0xFF;
+  }
+
+  return offset + byteLength
+};
+
+Buffer.prototype.writeUIntBE = function writeUIntBE (value, offset, byteLength, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  byteLength = byteLength >>> 0;
+  if (!noAssert) {
+    var maxBytes = Math.pow(2, 8 * byteLength) - 1;
+    checkInt(this, value, offset, byteLength, maxBytes, 0);
+  }
+
+  var i = byteLength - 1;
+  var mul = 1;
+  this[offset + i] = value & 0xFF;
+  while (--i >= 0 && (mul *= 0x100)) {
+    this[offset + i] = (value / mul) & 0xFF;
+  }
+
+  return offset + byteLength
+};
+
+Buffer.prototype.writeUInt8 = function writeUInt8 (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 1, 0xff, 0);
+  this[offset] = (value & 0xff);
+  return offset + 1
+};
+
+Buffer.prototype.writeUInt16LE = function writeUInt16LE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0);
+  this[offset] = (value & 0xff);
+  this[offset + 1] = (value >>> 8);
+  return offset + 2
+};
+
+Buffer.prototype.writeUInt16BE = function writeUInt16BE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0);
+  this[offset] = (value >>> 8);
+  this[offset + 1] = (value & 0xff);
+  return offset + 2
+};
+
+Buffer.prototype.writeUInt32LE = function writeUInt32LE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0);
+  this[offset + 3] = (value >>> 24);
+  this[offset + 2] = (value >>> 16);
+  this[offset + 1] = (value >>> 8);
+  this[offset] = (value & 0xff);
+  return offset + 4
+};
+
+Buffer.prototype.writeUInt32BE = function writeUInt32BE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0);
+  this[offset] = (value >>> 24);
+  this[offset + 1] = (value >>> 16);
+  this[offset + 2] = (value >>> 8);
+  this[offset + 3] = (value & 0xff);
+  return offset + 4
+};
+
+Buffer.prototype.writeIntLE = function writeIntLE (value, offset, byteLength, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) {
+    var limit = Math.pow(2, (8 * byteLength) - 1);
+
+    checkInt(this, value, offset, byteLength, limit - 1, -limit);
+  }
+
+  var i = 0;
+  var mul = 1;
+  var sub = 0;
+  this[offset] = value & 0xFF;
+  while (++i < byteLength && (mul *= 0x100)) {
+    if (value < 0 && sub === 0 && this[offset + i - 1] !== 0) {
+      sub = 1;
+    }
+    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF;
+  }
+
+  return offset + byteLength
+};
+
+Buffer.prototype.writeIntBE = function writeIntBE (value, offset, byteLength, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) {
+    var limit = Math.pow(2, (8 * byteLength) - 1);
+
+    checkInt(this, value, offset, byteLength, limit - 1, -limit);
+  }
+
+  var i = byteLength - 1;
+  var mul = 1;
+  var sub = 0;
+  this[offset + i] = value & 0xFF;
+  while (--i >= 0 && (mul *= 0x100)) {
+    if (value < 0 && sub === 0 && this[offset + i + 1] !== 0) {
+      sub = 1;
+    }
+    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF;
+  }
+
+  return offset + byteLength
+};
+
+Buffer.prototype.writeInt8 = function writeInt8 (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 1, 0x7f, -0x80);
+  if (value < 0) value = 0xff + value + 1;
+  this[offset] = (value & 0xff);
+  return offset + 1
+};
+
+Buffer.prototype.writeInt16LE = function writeInt16LE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000);
+  this[offset] = (value & 0xff);
+  this[offset + 1] = (value >>> 8);
+  return offset + 2
+};
+
+Buffer.prototype.writeInt16BE = function writeInt16BE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000);
+  this[offset] = (value >>> 8);
+  this[offset + 1] = (value & 0xff);
+  return offset + 2
+};
+
+Buffer.prototype.writeInt32LE = function writeInt32LE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000);
+  this[offset] = (value & 0xff);
+  this[offset + 1] = (value >>> 8);
+  this[offset + 2] = (value >>> 16);
+  this[offset + 3] = (value >>> 24);
+  return offset + 4
+};
+
+Buffer.prototype.writeInt32BE = function writeInt32BE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000);
+  if (value < 0) value = 0xffffffff + value + 1;
+  this[offset] = (value >>> 24);
+  this[offset + 1] = (value >>> 16);
+  this[offset + 2] = (value >>> 8);
+  this[offset + 3] = (value & 0xff);
+  return offset + 4
+};
+
+function checkIEEE754 (buf, value, offset, ext, max, min) {
+  if (offset + ext > buf.length) throw new RangeError('Index out of range')
+  if (offset < 0) throw new RangeError('Index out of range')
+}
+
+function writeFloat (buf, value, offset, littleEndian, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) {
+    checkIEEE754(buf, value, offset, 4, 3.4028234663852886e+38, -3.4028234663852886e+38);
+  }
+  ieee754.write(buf, value, offset, littleEndian, 23, 4);
+  return offset + 4
+}
+
+Buffer.prototype.writeFloatLE = function writeFloatLE (value, offset, noAssert) {
+  return writeFloat(this, value, offset, true, noAssert)
+};
+
+Buffer.prototype.writeFloatBE = function writeFloatBE (value, offset, noAssert) {
+  return writeFloat(this, value, offset, false, noAssert)
+};
+
+function writeDouble (buf, value, offset, littleEndian, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) {
+    checkIEEE754(buf, value, offset, 8, 1.7976931348623157E+308, -1.7976931348623157E+308);
+  }
+  ieee754.write(buf, value, offset, littleEndian, 52, 8);
+  return offset + 8
+}
+
+Buffer.prototype.writeDoubleLE = function writeDoubleLE (value, offset, noAssert) {
+  return writeDouble(this, value, offset, true, noAssert)
+};
+
+Buffer.prototype.writeDoubleBE = function writeDoubleBE (value, offset, noAssert) {
+  return writeDouble(this, value, offset, false, noAssert)
+};
+
+// copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
+Buffer.prototype.copy = function copy (target, targetStart, start, end) {
+  if (!start) start = 0;
+  if (!end && end !== 0) end = this.length;
+  if (targetStart >= target.length) targetStart = target.length;
+  if (!targetStart) targetStart = 0;
+  if (end > 0 && end < start) end = start;
+
+  // Copy 0 bytes; we're done
+  if (end === start) return 0
+  if (target.length === 0 || this.length === 0) return 0
+
+  // Fatal error conditions
+  if (targetStart < 0) {
+    throw new RangeError('targetStart out of bounds')
+  }
+  if (start < 0 || start >= this.length) throw new RangeError('sourceStart out of bounds')
+  if (end < 0) throw new RangeError('sourceEnd out of bounds')
+
+  // Are we oob?
+  if (end > this.length) end = this.length;
+  if (target.length - targetStart < end - start) {
+    end = target.length - targetStart + start;
+  }
+
+  var len = end - start;
+  var i;
+
+  if (this === target && start < targetStart && targetStart < end) {
+    // descending copy from end
+    for (i = len - 1; i >= 0; --i) {
+      target[i + targetStart] = this[i + start];
+    }
+  } else if (len < 1000) {
+    // ascending copy from start
+    for (i = 0; i < len; ++i) {
+      target[i + targetStart] = this[i + start];
+    }
+  } else {
+    Uint8Array.prototype.set.call(
+      target,
+      this.subarray(start, start + len),
+      targetStart
+    );
+  }
+
+  return len
+};
+
+// Usage:
+//    buffer.fill(number[, offset[, end]])
+//    buffer.fill(buffer[, offset[, end]])
+//    buffer.fill(string[, offset[, end]][, encoding])
+Buffer.prototype.fill = function fill (val, start, end, encoding) {
+  // Handle string cases:
+  if (typeof val === 'string') {
+    if (typeof start === 'string') {
+      encoding = start;
+      start = 0;
+      end = this.length;
+    } else if (typeof end === 'string') {
+      encoding = end;
+      end = this.length;
+    }
+    if (val.length === 1) {
+      var code = val.charCodeAt(0);
+      if (code < 256) {
+        val = code;
+      }
+    }
+    if (encoding !== undefined && typeof encoding !== 'string') {
+      throw new TypeError('encoding must be a string')
+    }
+    if (typeof encoding === 'string' && !Buffer.isEncoding(encoding)) {
+      throw new TypeError('Unknown encoding: ' + encoding)
+    }
+  } else if (typeof val === 'number') {
+    val = val & 255;
+  }
+
+  // Invalid ranges are not set to a default, so can range check early.
+  if (start < 0 || this.length < start || this.length < end) {
+    throw new RangeError('Out of range index')
+  }
+
+  if (end <= start) {
+    return this
+  }
+
+  start = start >>> 0;
+  end = end === undefined ? this.length : end >>> 0;
+
+  if (!val) val = 0;
+
+  var i;
+  if (typeof val === 'number') {
+    for (i = start; i < end; ++i) {
+      this[i] = val;
+    }
+  } else {
+    var bytes = Buffer.isBuffer(val)
+      ? val
+      : new Buffer(val, encoding);
+    var len = bytes.length;
+    for (i = 0; i < end - start; ++i) {
+      this[i + start] = bytes[i % len];
+    }
+  }
+
+  return this
+};
+
+// HELPER FUNCTIONS
+// ================
+
+var INVALID_BASE64_RE = /[^+/0-9A-Za-z-_]/g;
+
+function base64clean (str) {
+  // Node strips out invalid characters like \n and \t from the string, base64-js does not
+  str = str.trim().replace(INVALID_BASE64_RE, '');
+  // Node converts strings with length < 2 to ''
+  if (str.length < 2) return ''
+  // Node allows for non-padded base64 strings (missing trailing ===), base64-js does not
+  while (str.length % 4 !== 0) {
+    str = str + '=';
+  }
+  return str
+}
+
+function toHex (n) {
+  if (n < 16) return '0' + n.toString(16)
+  return n.toString(16)
+}
+
+function utf8ToBytes (string, units) {
+  units = units || Infinity;
+  var codePoint;
+  var length = string.length;
+  var leadSurrogate = null;
+  var bytes = [];
+
+  for (var i = 0; i < length; ++i) {
+    codePoint = string.charCodeAt(i);
+
+    // is surrogate component
+    if (codePoint > 0xD7FF && codePoint < 0xE000) {
+      // last char was a lead
+      if (!leadSurrogate) {
+        // no lead yet
+        if (codePoint > 0xDBFF) {
+          // unexpected trail
+          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD);
+          continue
+        } else if (i + 1 === length) {
+          // unpaired lead
+          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD);
+          continue
+        }
+
+        // valid lead
+        leadSurrogate = codePoint;
+
+        continue
+      }
+
+      // 2 leads in a row
+      if (codePoint < 0xDC00) {
+        if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD);
+        leadSurrogate = codePoint;
+        continue
+      }
+
+      // valid surrogate pair
+      codePoint = (leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00) + 0x10000;
+    } else if (leadSurrogate) {
+      // valid bmp char, but last char was a lead
+      if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD);
+    }
+
+    leadSurrogate = null;
+
+    // encode utf8
+    if (codePoint < 0x80) {
+      if ((units -= 1) < 0) break
+      bytes.push(codePoint);
+    } else if (codePoint < 0x800) {
+      if ((units -= 2) < 0) break
+      bytes.push(
+        codePoint >> 0x6 | 0xC0,
+        codePoint & 0x3F | 0x80
+      );
+    } else if (codePoint < 0x10000) {
+      if ((units -= 3) < 0) break
+      bytes.push(
+        codePoint >> 0xC | 0xE0,
+        codePoint >> 0x6 & 0x3F | 0x80,
+        codePoint & 0x3F | 0x80
+      );
+    } else if (codePoint < 0x110000) {
+      if ((units -= 4) < 0) break
+      bytes.push(
+        codePoint >> 0x12 | 0xF0,
+        codePoint >> 0xC & 0x3F | 0x80,
+        codePoint >> 0x6 & 0x3F | 0x80,
+        codePoint & 0x3F | 0x80
+      );
+    } else {
+      throw new Error('Invalid code point')
+    }
+  }
+
+  return bytes
+}
+
+function asciiToBytes (str) {
+  var byteArray = [];
+  for (var i = 0; i < str.length; ++i) {
+    // Node's code seems to be doing this and not & 0x7F..
+    byteArray.push(str.charCodeAt(i) & 0xFF);
+  }
+  return byteArray
+}
+
+function utf16leToBytes (str, units) {
+  var c, hi, lo;
+  var byteArray = [];
+  for (var i = 0; i < str.length; ++i) {
+    if ((units -= 2) < 0) break
+
+    c = str.charCodeAt(i);
+    hi = c >> 8;
+    lo = c % 256;
+    byteArray.push(lo);
+    byteArray.push(hi);
+  }
+
+  return byteArray
+}
+
+function base64ToBytes (str) {
+  return base64Js.toByteArray(base64clean(str))
+}
+
+function blitBuffer (src, dst, offset, length) {
+  for (var i = 0; i < length; ++i) {
+    if ((i + offset >= dst.length) || (i >= src.length)) break
+    dst[i + offset] = src[i];
+  }
+  return i
+}
+
+// ArrayBuffers from another context (i.e. an iframe) do not pass the `instanceof` check
+// but they should be treated as valid. See: https://github.com/feross/buffer/issues/166
+function isArrayBuffer (obj) {
+  return obj instanceof ArrayBuffer ||
+    (obj != null && obj.constructor != null && obj.constructor.name === 'ArrayBuffer' &&
+      typeof obj.byteLength === 'number')
+}
+
+// Node 0.10 supports `ArrayBuffer` but lacks `ArrayBuffer.isView`
+function isArrayBufferView (obj) {
+  return (typeof ArrayBuffer.isView === 'function') && ArrayBuffer.isView(obj)
+}
+
+function numberIsNaN (obj) {
+  return obj !== obj // eslint-disable-line no-self-compare
+}
+});
+
+var buffer_1 = buffer.Buffer;
+
+function parseBodyToType$2(res) {
+  var clone = res.clone();
+  return new Promise(function (resolve) {
+    res.json().then(function (data) {
+      return resolve(data);
+    }).catch(function () {
+      return clone.text().then(function (data) {
+        return resolve(data);
+      });
+    });
+  }).then(function (data) {
+    return [res, data];
+  });
+}
+
+function rpcRequest(path, body, auth, host, accessToken, options) {
+  var fetchOptions = {
+    method: 'POST',
+    body: body ? JSON.stringify(body) : null
+  };
+  var headers = {};
+  if (body) {
+    headers['Content-Type'] = 'application/json';
+  }
+  var authHeader = '';
+
+  switch (auth) {
+    case 'app':
+      if (!options.clientId || !options.clientSecret) {
+        throw new Error('A client id and secret is required for this function');
+      }
+      authHeader = new buffer_1(options.clientId + ':' + options.clientSecret).toString('base64');
+      headers.Authorization = 'Basic ' + authHeader;
+      break;
+    case 'team':
+    case 'user':
+      headers.Authorization = 'Bearer ' + accessToken;
+      break;
+    case 'noauth':
+      break;
+    default:
+      throw new Error('Unhandled auth type: ' + auth);
+  }
+
+  if (options) {
+    if (options.selectUser) {
+      headers['Dropbox-API-Select-User'] = options.selectUser;
+    }
+    if (options.selectAdmin) {
+      headers['Dropbox-API-Select-Admin'] = options.selectAdmin;
+    }
+  }
+
+  fetchOptions.headers = headers;
+  return fetch(getBaseURL(host) + path, fetchOptions).then(function (res) {
+    return parseBodyToType$2(res);
+  }).then(function (_ref) {
+    var _ref2 = slicedToArray(_ref, 2),
+        res = _ref2[0],
+        data = _ref2[1];
+
+    // maintaining existing API for error codes not equal to 200 range
+    if (!res.ok) {
+      // eslint-disable-next-line no-throw-literal
+      throw {
+        error: data,
+        response: res,
+        status: res.status
+      };
+    }
+
+    return data;
+  });
+}
+
+/* eslint-disable */
+// Polyfill object.assign for legacy browsers
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
+if (typeof Object.assign !== 'function') {
+  (function () {
+    Object.assign = function (target) {
+      'use strict';
+
+      var output;
+      var index;
+      var source;
+      var nextKey;
+      if (target === undefined || target === null) {
+        throw new TypeError('Cannot convert undefined or null to object');
+      }
+
+      output = Object(target);
+      for (index = 1; index < arguments.length; index++) {
+        source = arguments[index];
+        if (source !== undefined && source !== null) {
+          for (nextKey in source) {
+            if (source.hasOwnProperty(nextKey)) {
+              output[nextKey] = source[nextKey];
+            }
+          }
+        }
+      }
+      return output;
+    };
+  })();
+}
+
+// Polyfill Array.includes for legacy browsers
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/includes
+// https://tc39.github.io/ecma262/#sec-array.prototype.includes
+if (!Array.prototype.includes) {
+  Object.defineProperty(Array.prototype, 'includes', {
+    value: function value(searchElement, fromIndex) {
+
+      if (this == null) {
+        throw new TypeError('"this" is null or not defined');
+      }
+
+      // 1. Let O be ? ToObject(this value).
+      var o = Object(this);
+
+      // 2. Let len be ? ToLength(? Get(O, "length")).
+      var len = o.length >>> 0;
+
+      // 3. If len is 0, return false.
+      if (len === 0) {
+        return false;
+      }
+
+      // 4. Let n be ? ToInteger(fromIndex).
+      //    (If fromIndex is undefined, this step produces the value 0.)
+      var n = fromIndex | 0;
+
+      // 5. If n ≥ 0, then
+      //  a. Let k be n.
+      // 6. Else n < 0,
+      //  a. Let k be len + n.
+      //  b. If k < 0, let k be 0.
+      var k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
+
+      function sameValueZero(x, y) {
+        return x === y || typeof x === 'number' && typeof y === 'number' && isNaN(x) && isNaN(y);
+      }
+
+      // 7. Repeat, while k < len
+      while (k < len) {
+        // a. Let elementK be the result of ? Get(O, ! ToString(k)).
+        // b. If SameValueZero(searchElement, elementK) is true, return true.
+        if (sameValueZero(o[k], searchElement)) {
+          return true;
+        }
+        // c. Increase k by 1.
+        k++;
+      }
+
+      // 8. Return false
+      return false;
+    }
+  });
+}
+/* eslint-enable */
+
+/**
+ * @private
+ * @class DropboxBase
+ * @classdesc The main Dropbox SDK class. This contains the methods that are
+ * shared between Dropbox and DropboxTeam classes. It is marked as private so
+ * that it doesn't show up in the docs because it is never used directly.
+ * @arg {Object} options
+ * @arg {String} [options.accessToken] - An access token for making authenticated
+ * requests.
+ * @arg {String} [options.clientId] - The client id for your app. Used to create
+ * authentication URL.
+ * @arg {String} [options.clientSecret] - The client secret for your app.
+ * @arg {Number} [options.selectUser] - User that the team access token would like
+ * to act as.
+ * @arg {String} [options.selectAdmin] - Team admin that the team access token would like
+ * to act as.
+ */
+
+function parseBodyToType(res) {
+  var clone = res.clone();
+  return new Promise(function (resolve) {
+    res.json().then(function (data) {
+      return resolve(data);
+    }).catch(function () {
+      return clone.text().then(function (data) {
+        return resolve(data);
+      });
+    });
+  }).then(function (data) {
+    return [res, data];
+  });
+}
+
+var DropboxBase = function () {
+  function DropboxBase(options) {
+    classCallCheck(this, DropboxBase);
+
+    options = options || {};
+    this.accessToken = options.accessToken;
+    this.clientId = options.clientId;
+    this.clientSecret = options.clientSecret;
+    this.selectUser = options.selectUser;
+    this.selectAdmin = options.selectAdmin;
+  }
+
+  /**
+   * Set the access token used to authenticate requests to the API.
+   * @arg {String} accessToken - An access token
+   * @returns {undefined}
+   */
+
+
+  createClass(DropboxBase, [{
+    key: 'setAccessToken',
+    value: function setAccessToken(accessToken) {
+      this.accessToken = accessToken;
+    }
+
+    /**
+     * Get the access token
+     * @returns {String} Access token
+     */
+
+  }, {
+    key: 'getAccessToken',
+    value: function getAccessToken() {
+      return this.accessToken;
+    }
+
+    /**
+     * Set the client id, which is used to help gain an access token.
+     * @arg {String} clientId - Your apps client id
+     * @returns {undefined}
+     */
+
+  }, {
+    key: 'setClientId',
+    value: function setClientId(clientId) {
+      this.clientId = clientId;
+    }
+
+    /**
+     * Get the client id
+     * @returns {String} Client id
+     */
+
+  }, {
+    key: 'getClientId',
+    value: function getClientId() {
+      return this.clientId;
+    }
+
+    /**
+     * Set the client secret
+     * @arg {String} clientId - Your apps client secret
+     * @returns {undefined}
+     */
+
+  }, {
+    key: 'setClientSecret',
+    value: function setClientSecret(clientSecret) {
+      this.clientSecret = clientSecret;
+    }
+
+    /**
+     * Get the client secret
+     * @returns {String} Client secret
+     */
+
+  }, {
+    key: 'getClientSecret',
+    value: function getClientSecret() {
+      return this.clientSecret;
+    }
+
+    /**
+     * Get a URL that can be used to authenticate users for the Dropbox API.
+     * @arg {String} redirectUri - A URL to redirect the user to after
+     * authenticating. This must be added to your app through the admin interface.
+     * @arg {String} [state] - State that will be returned in the redirect URL to help
+     * prevent cross site scripting attacks.
+     * @arg {String} [authType] - auth type, defaults to 'token', other option is 'code'
+     * @returns {String} Url to send user to for Dropbox API authentication
+     */
+
+  }, {
+    key: 'getAuthenticationUrl',
+    value: function getAuthenticationUrl(redirectUri, state) {
+      var authType = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'token';
+
+      var clientId = this.getClientId();
+      var baseUrl = 'https://www.dropbox.com/oauth2/authorize';
+
+      if (!clientId) {
+        throw new Error('A client id is required. You can set the client id using .setClientId().');
+      }
+      if (authType !== 'code' && !redirectUri) {
+        throw new Error('A redirect uri is required.');
+      }
+      if (!['code', 'token'].includes(authType)) {
+        throw new Error('Authorization type must be code or token');
+      }
+
+      var authUrl = void 0;
+      if (authType === 'code') {
+        authUrl = baseUrl + '?response_type=code&client_id=' + clientId;
+      } else {
+        authUrl = baseUrl + '?response_type=token&client_id=' + clientId;
+      }
+
+      if (redirectUri) {
+        authUrl += '&redirect_uri=' + redirectUri;
+      }
+      if (state) {
+        authUrl += '&state=' + state;
+      }
+      return authUrl;
+    }
+
+    /**
+     * Get an OAuth2 access token from an OAuth2 Code.
+     * @arg {String} redirectUri - A URL to redirect the user to after
+     * authenticating. This must be added to your app through the admin interface.
+     * @arg {String} code - An OAuth2 code.
+    */
+
+  }, {
+    key: 'getAccessTokenFromCode',
+    value: function getAccessTokenFromCode(redirectUri, code) {
+      var clientId = this.getClientId();
+      var clientSecret = this.getClientSecret();
+
+      if (!clientId) {
+        throw new Error('A client id is required. You can set the client id using .setClientId().');
+      }
+      if (!clientSecret) {
+        throw new Error('A client secret is required. You can set the client id using .setClientSecret().');
+      }
+      var path = 'https://api.dropboxapi.com/oauth2/token?code=' + code + '&grant_type=authorization_code&redirect_uri=' + redirectUri + '&client_id=' + clientId + '&client_secret=' + clientSecret;
+
+      var fetchOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      };
+
+      return fetch(path, fetchOptions).then(function (res) {
+        return parseBodyToType(res);
+      }).then(function (_ref) {
+        var _ref2 = slicedToArray(_ref, 2),
+            res = _ref2[0],
+            data = _ref2[1];
+
+        // maintaining existing API for error codes not equal to 200 range
+        if (!res.ok) {
+          // eslint-disable-next-line no-throw-literal
+          throw {
+            error: data,
+            response: res,
+            status: res.status
+          };
+        }
+        return data.access_token;
+      });
+    }
+
+    /**
+     * Called when the authentication succeed
+     * @callback successCallback
+     * @param {string} access_token The application's access token
+     */
+
+    /**
+     * Called when the authentication failed.
+     * @callback errorCallback
+     */
+
+    /**
+     * An authentication process that works with cordova applications.
+     * @param {successCallback} successCallback
+     * @param {errorCallback} errorCallback
+     */
+
+  }, {
+    key: 'authenticateWithCordova',
+    value: function authenticateWithCordova(successCallback, errorCallback) {
+      var redirectUrl = 'https://www.dropbox.com/1/oauth2/redirect_receiver';
+      var url = this.getAuthenticationUrl(redirectUrl);
+
+      var removed = false;
+      var browser = window.open(url, '_blank');
+
+      function onLoadError() {
+        // Try to avoid a browser crash on browser.close().
+        window.setTimeout(function () {
+          browser.close();
+        }, 10);
+        errorCallback();
+      }
+
+      function onLoadStop(event) {
+        var errorLabel = '&error=';
+        var errorIndex = event.url.indexOf(errorLabel);
+
+        if (errorIndex > -1) {
+          // Try to avoid a browser crash on browser.close().
+          window.setTimeout(function () {
+            browser.close();
+          }, 10);
+          errorCallback();
+        } else {
+          var tokenLabel = '#access_token=';
+          var tokenIndex = event.url.indexOf(tokenLabel);
+          var tokenTypeIndex = event.url.indexOf('&token_type=');
+          if (tokenIndex > -1) {
+            tokenIndex += tokenLabel.length;
+            // Try to avoid a browser crash on browser.close().
+            window.setTimeout(function () {
+              browser.close();
+            }, 10);
+
+            var accessToken = event.url.substring(tokenIndex, tokenTypeIndex);
+            successCallback(accessToken);
+          }
+        }
+      }
+
+      function onExit() {
+        if (removed) {
+          return;
+        }
+        browser.removeEventListener('loaderror', onLoadError);
+        browser.removeEventListener('loadstop', onLoadStop);
+        browser.removeEventListener('exit', onExit);
+        removed = true;
+      }
+
+      browser.addEventListener('loaderror', onLoadError);
+      browser.addEventListener('loadstop', onLoadStop);
+      browser.addEventListener('exit', onExit);
+    }
+  }, {
+    key: 'request',
+    value: function request(path, args, auth, host, style) {
+      var request = null;
+      switch (style) {
+        case RPC:
+          request = this.getRpcRequest();
+          break;
+        case DOWNLOAD:
+          request = this.getDownloadRequest();
+          break;
+        case UPLOAD:
+          request = this.getUploadRequest();
+          break;
+        default:
+          throw new Error('Invalid request style: ' + style);
+      }
+      var options = {
+        selectUser: this.selectUser,
+        selectAdmin: this.selectAdmin,
+        clientId: this.getClientId(),
+        clientSecret: this.getClientSecret()
+      };
+      return request(path, args, auth, host, this.getAccessToken(), options);
+    }
+  }, {
+    key: 'setRpcRequest',
+    value: function setRpcRequest(newRpcRequest) {
+      this.rpcRequest = newRpcRequest;
+    }
+  }, {
+    key: 'getRpcRequest',
+    value: function getRpcRequest() {
+      if (this.rpcRequest === undefined) {
+        this.rpcRequest = rpcRequest;
+      }
+      return this.rpcRequest;
+    }
+  }, {
+    key: 'setDownloadRequest',
+    value: function setDownloadRequest(newDownloadRequest) {
+      this.downloadRequest = newDownloadRequest;
+    }
+  }, {
+    key: 'getDownloadRequest',
+    value: function getDownloadRequest() {
+      if (this.downloadRequest === undefined) {
+        this.downloadRequest = downloadRequest;
+      }
+      return this.downloadRequest;
+    }
+  }, {
+    key: 'setUploadRequest',
+    value: function setUploadRequest(newUploadRequest) {
+      this.uploadRequest = newUploadRequest;
+    }
+  }, {
+    key: 'getUploadRequest',
+    value: function getUploadRequest() {
+      if (this.uploadRequest === undefined) {
+        this.uploadRequest = uploadRequest;
+      }
+      return this.uploadRequest;
+    }
+  }]);
+  return DropboxBase;
+}();
+
+/**
+ * @class Dropbox
+ * @extends DropboxBase
+ * @classdesc The Dropbox SDK class that provides methods to read, write and
+ * create files or folders in a user's Dropbox.
+ * @arg {Object} options
+ * @arg {String} [options.accessToken] - An access token for making authenticated
+ * requests.
+ * @arg {String} [options.clientId] - The client id for your app. Used to create
+ * authentication URL.
+ * @arg {String} [options.selectUser] - Select user is only used by DropboxTeam.
+ * It specifies which user the team access token should be acting as.
+ */
+var Dropbox = function (_DropboxBase) {
+  inherits(Dropbox, _DropboxBase);
+
+  function Dropbox(options) {
+    classCallCheck(this, Dropbox);
+
+    var _this = possibleConstructorReturn(this, (Dropbox.__proto__ || Object.getPrototypeOf(Dropbox)).call(this, options));
+
+    Object.assign(_this, routes);
+    return _this;
+  }
+
+  createClass(Dropbox, [{
+    key: 'filesGetSharedLinkFile',
+    value: function filesGetSharedLinkFile(arg) {
+      return this.request('sharing/get_shared_link_file', arg, 'api', 'download');
+    }
+  }]);
+  return Dropbox;
+}(DropboxBase);
+
+
+
+var dropbox = Object.freeze({
+	Dropbox: Dropbox
+});
+
+// Auto-generated by Stone, do not modify.
+var routes$1 = {};
+
+/**
+ * List all device sessions of a team's member.
+ * @function DropboxTeam#teamDevicesListMemberDevices
+ * @arg {TeamListMemberDevicesArg} arg - The request parameters.
+ * @returns {Promise.<TeamListMemberDevicesResult, Error.<TeamListMemberDevicesError>>}
+ */
+routes$1.teamDevicesListMemberDevices = function (arg) {
+  return this.request('team/devices/list_member_devices', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * List all device sessions of a team.
+ * @function DropboxTeam#teamDevicesListMembersDevices
+ * @arg {TeamListMembersDevicesArg} arg - The request parameters.
+ * @returns {Promise.<TeamListMembersDevicesResult, Error.<TeamListMembersDevicesError>>}
+ */
+routes$1.teamDevicesListMembersDevices = function (arg) {
+  return this.request('team/devices/list_members_devices', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * List all device sessions of a team.
+ * @function DropboxTeam#teamDevicesListTeamDevices
+ * @deprecated
+ * @arg {TeamListTeamDevicesArg} arg - The request parameters.
+ * @returns {Promise.<TeamListTeamDevicesResult, Error.<TeamListTeamDevicesError>>}
+ */
+routes$1.teamDevicesListTeamDevices = function (arg) {
+  return this.request('team/devices/list_team_devices', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Revoke a device session of a team's member.
+ * @function DropboxTeam#teamDevicesRevokeDeviceSession
+ * @arg {TeamRevokeDeviceSessionArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<TeamRevokeDeviceSessionError>>}
+ */
+routes$1.teamDevicesRevokeDeviceSession = function (arg) {
+  return this.request('team/devices/revoke_device_session', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Revoke a list of device sessions of team members.
+ * @function DropboxTeam#teamDevicesRevokeDeviceSessionBatch
+ * @arg {TeamRevokeDeviceSessionBatchArg} arg - The request parameters.
+ * @returns {Promise.<TeamRevokeDeviceSessionBatchResult, Error.<TeamRevokeDeviceSessionBatchError>>}
+ */
+routes$1.teamDevicesRevokeDeviceSessionBatch = function (arg) {
+  return this.request('team/devices/revoke_device_session_batch', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Get the values for one or more featues. This route allows you to check your
+ * account's capability for what feature you can access or what value you have
+ * for certain features. Permission : Team information.
+ * @function DropboxTeam#teamFeaturesGetValues
+ * @arg {TeamFeaturesGetValuesBatchArg} arg - The request parameters.
+ * @returns {Promise.<TeamFeaturesGetValuesBatchResult, Error.<TeamFeaturesGetValuesBatchError>>}
+ */
+routes$1.teamFeaturesGetValues = function (arg) {
+  return this.request('team/features/get_values', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Retrieves information about a team.
+ * @function DropboxTeam#teamGetInfo
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<TeamTeamGetInfoResult, Error.<void>>}
+ */
+routes$1.teamGetInfo = function (arg) {
+  return this.request('team/get_info', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Creates a new, empty group, with a requested name. Permission : Team member
+ * management.
+ * @function DropboxTeam#teamGroupsCreate
+ * @arg {TeamGroupCreateArg} arg - The request parameters.
+ * @returns {Promise.<TeamGroupFullInfo, Error.<TeamGroupCreateError>>}
+ */
+routes$1.teamGroupsCreate = function (arg) {
+  return this.request('team/groups/create', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Deletes a group. The group is deleted immediately. However the revoking of
+ * group-owned resources may take additional time. Use the groups/job_status/get
+ * to determine whether this process has completed. Permission : Team member
+ * management.
+ * @function DropboxTeam#teamGroupsDelete
+ * @arg {TeamGroupSelector} arg - The request parameters.
+ * @returns {Promise.<AsyncLaunchEmptyResult, Error.<TeamGroupDeleteError>>}
+ */
+routes$1.teamGroupsDelete = function (arg) {
+  return this.request('team/groups/delete', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Retrieves information about one or more groups. Note that the optional field
+ * GroupFullInfo.members is not returned for system-managed groups. Permission :
+ * Team Information.
+ * @function DropboxTeam#teamGroupsGetInfo
+ * @arg {TeamGroupsSelector} arg - The request parameters.
+ * @returns {Promise.<Object, Error.<TeamGroupsGetInfoError>>}
+ */
+routes$1.teamGroupsGetInfo = function (arg) {
+  return this.request('team/groups/get_info', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once an async_job_id is returned from groups/delete, groups/members/add , or
+ * groups/members/remove use this method to poll the status of granting/revoking
+ * group members' access to group-owned resources. Permission : Team member
+ * management.
+ * @function DropboxTeam#teamGroupsJobStatusGet
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<AsyncPollEmptyResult, Error.<TeamGroupsPollError>>}
+ */
+routes$1.teamGroupsJobStatusGet = function (arg) {
+  return this.request('team/groups/job_status/get', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Lists groups on a team. Permission : Team Information.
+ * @function DropboxTeam#teamGroupsList
+ * @arg {TeamGroupsListArg} arg - The request parameters.
+ * @returns {Promise.<TeamGroupsListResult, Error.<void>>}
+ */
+routes$1.teamGroupsList = function (arg) {
+  return this.request('team/groups/list', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from groups/list, use this to paginate
+ * through all groups. Permission : Team Information.
+ * @function DropboxTeam#teamGroupsListContinue
+ * @arg {TeamGroupsListContinueArg} arg - The request parameters.
+ * @returns {Promise.<TeamGroupsListResult, Error.<TeamGroupsListContinueError>>}
+ */
+routes$1.teamGroupsListContinue = function (arg) {
+  return this.request('team/groups/list/continue', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Adds members to a group. The members are added immediately. However the
+ * granting of group-owned resources may take additional time. Use the
+ * groups/job_status/get to determine whether this process has completed.
+ * Permission : Team member management.
+ * @function DropboxTeam#teamGroupsMembersAdd
+ * @arg {TeamGroupMembersAddArg} arg - The request parameters.
+ * @returns {Promise.<TeamGroupMembersChangeResult, Error.<TeamGroupMembersAddError>>}
+ */
+routes$1.teamGroupsMembersAdd = function (arg) {
+  return this.request('team/groups/members/add', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Lists members of a group. Permission : Team Information.
+ * @function DropboxTeam#teamGroupsMembersList
+ * @arg {TeamGroupsMembersListArg} arg - The request parameters.
+ * @returns {Promise.<TeamGroupsMembersListResult, Error.<TeamGroupSelectorError>>}
+ */
+routes$1.teamGroupsMembersList = function (arg) {
+  return this.request('team/groups/members/list', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from groups/members/list, use this to
+ * paginate through all members of the group. Permission : Team information.
+ * @function DropboxTeam#teamGroupsMembersListContinue
+ * @arg {TeamGroupsMembersListContinueArg} arg - The request parameters.
+ * @returns {Promise.<TeamGroupsMembersListResult, Error.<TeamGroupsMembersListContinueError>>}
+ */
+routes$1.teamGroupsMembersListContinue = function (arg) {
+  return this.request('team/groups/members/list/continue', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Removes members from a group. The members are removed immediately. However
+ * the revoking of group-owned resources may take additional time. Use the
+ * groups/job_status/get to determine whether this process has completed. This
+ * method permits removing the only owner of a group, even in cases where this
+ * is not possible via the web client. Permission : Team member management.
+ * @function DropboxTeam#teamGroupsMembersRemove
+ * @arg {TeamGroupMembersRemoveArg} arg - The request parameters.
+ * @returns {Promise.<TeamGroupMembersChangeResult, Error.<TeamGroupMembersRemoveError>>}
+ */
+routes$1.teamGroupsMembersRemove = function (arg) {
+  return this.request('team/groups/members/remove', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Sets a member's access type in a group. Permission : Team member management.
+ * @function DropboxTeam#teamGroupsMembersSetAccessType
+ * @arg {TeamGroupMembersSetAccessTypeArg} arg - The request parameters.
+ * @returns {Promise.<Object, Error.<TeamGroupMemberSetAccessTypeError>>}
+ */
+routes$1.teamGroupsMembersSetAccessType = function (arg) {
+  return this.request('team/groups/members/set_access_type', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Updates a group's name and/or external ID. Permission : Team member
+ * management.
+ * @function DropboxTeam#teamGroupsUpdate
+ * @arg {TeamGroupUpdateArgs} arg - The request parameters.
+ * @returns {Promise.<TeamGroupFullInfo, Error.<TeamGroupUpdateError>>}
+ */
+routes$1.teamGroupsUpdate = function (arg) {
+  return this.request('team/groups/update', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * List all linked applications of the team member. Note, this endpoint does not
+ * list any team-linked applications.
+ * @function DropboxTeam#teamLinkedAppsListMemberLinkedApps
+ * @arg {TeamListMemberAppsArg} arg - The request parameters.
+ * @returns {Promise.<TeamListMemberAppsResult, Error.<TeamListMemberAppsError>>}
+ */
+routes$1.teamLinkedAppsListMemberLinkedApps = function (arg) {
+  return this.request('team/linked_apps/list_member_linked_apps', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * List all applications linked to the team members' accounts. Note, this
+ * endpoint does not list any team-linked applications.
+ * @function DropboxTeam#teamLinkedAppsListMembersLinkedApps
+ * @arg {TeamListMembersAppsArg} arg - The request parameters.
+ * @returns {Promise.<TeamListMembersAppsResult, Error.<TeamListMembersAppsError>>}
+ */
+routes$1.teamLinkedAppsListMembersLinkedApps = function (arg) {
+  return this.request('team/linked_apps/list_members_linked_apps', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * List all applications linked to the team members' accounts. Note, this
+ * endpoint doesn't list any team-linked applications.
+ * @function DropboxTeam#teamLinkedAppsListTeamLinkedApps
+ * @deprecated
+ * @arg {TeamListTeamAppsArg} arg - The request parameters.
+ * @returns {Promise.<TeamListTeamAppsResult, Error.<TeamListTeamAppsError>>}
+ */
+routes$1.teamLinkedAppsListTeamLinkedApps = function (arg) {
+  return this.request('team/linked_apps/list_team_linked_apps', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Revoke a linked application of the team member.
+ * @function DropboxTeam#teamLinkedAppsRevokeLinkedApp
+ * @arg {TeamRevokeLinkedApiAppArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<TeamRevokeLinkedAppError>>}
+ */
+routes$1.teamLinkedAppsRevokeLinkedApp = function (arg) {
+  return this.request('team/linked_apps/revoke_linked_app', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Revoke a list of linked applications of the team members.
+ * @function DropboxTeam#teamLinkedAppsRevokeLinkedAppBatch
+ * @arg {TeamRevokeLinkedApiAppBatchArg} arg - The request parameters.
+ * @returns {Promise.<TeamRevokeLinkedAppBatchResult, Error.<TeamRevokeLinkedAppBatchError>>}
+ */
+routes$1.teamLinkedAppsRevokeLinkedAppBatch = function (arg) {
+  return this.request('team/linked_apps/revoke_linked_app_batch', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Add users to member space limits excluded users list.
+ * @function DropboxTeam#teamMemberSpaceLimitsExcludedUsersAdd
+ * @arg {TeamExcludedUsersUpdateArg} arg - The request parameters.
+ * @returns {Promise.<TeamExcludedUsersUpdateResult, Error.<TeamExcludedUsersUpdateError>>}
+ */
+routes$1.teamMemberSpaceLimitsExcludedUsersAdd = function (arg) {
+  return this.request('team/member_space_limits/excluded_users/add', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * List member space limits excluded users.
+ * @function DropboxTeam#teamMemberSpaceLimitsExcludedUsersList
+ * @arg {TeamExcludedUsersListArg} arg - The request parameters.
+ * @returns {Promise.<TeamExcludedUsersListResult, Error.<TeamExcludedUsersListError>>}
+ */
+routes$1.teamMemberSpaceLimitsExcludedUsersList = function (arg) {
+  return this.request('team/member_space_limits/excluded_users/list', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Continue listing member space limits excluded users.
+ * @function DropboxTeam#teamMemberSpaceLimitsExcludedUsersListContinue
+ * @arg {TeamExcludedUsersListContinueArg} arg - The request parameters.
+ * @returns {Promise.<TeamExcludedUsersListResult, Error.<TeamExcludedUsersListContinueError>>}
+ */
+routes$1.teamMemberSpaceLimitsExcludedUsersListContinue = function (arg) {
+  return this.request('team/member_space_limits/excluded_users/list/continue', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Remove users from member space limits excluded users list.
+ * @function DropboxTeam#teamMemberSpaceLimitsExcludedUsersRemove
+ * @arg {TeamExcludedUsersUpdateArg} arg - The request parameters.
+ * @returns {Promise.<TeamExcludedUsersUpdateResult, Error.<TeamExcludedUsersUpdateError>>}
+ */
+routes$1.teamMemberSpaceLimitsExcludedUsersRemove = function (arg) {
+  return this.request('team/member_space_limits/excluded_users/remove', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Get users custom quota. Returns none as the custom quota if none was set. A
+ * maximum of 1000 members can be specified in a single call.
+ * @function DropboxTeam#teamMemberSpaceLimitsGetCustomQuota
+ * @arg {TeamCustomQuotaUsersArg} arg - The request parameters.
+ * @returns {Promise.<Array.<TeamCustomQuotaResult>, Error.<TeamCustomQuotaError>>}
+ */
+routes$1.teamMemberSpaceLimitsGetCustomQuota = function (arg) {
+  return this.request('team/member_space_limits/get_custom_quota', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Remove users custom quota. A maximum of 1000 members can be specified in a
+ * single call.
+ * @function DropboxTeam#teamMemberSpaceLimitsRemoveCustomQuota
+ * @arg {TeamCustomQuotaUsersArg} arg - The request parameters.
+ * @returns {Promise.<Array.<TeamRemoveCustomQuotaResult>, Error.<TeamCustomQuotaError>>}
+ */
+routes$1.teamMemberSpaceLimitsRemoveCustomQuota = function (arg) {
+  return this.request('team/member_space_limits/remove_custom_quota', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Set users custom quota. Custom quota has to be at least 15GB. A maximum of
+ * 1000 members can be specified in a single call.
+ * @function DropboxTeam#teamMemberSpaceLimitsSetCustomQuota
+ * @arg {TeamSetCustomQuotaArg} arg - The request parameters.
+ * @returns {Promise.<Array.<TeamCustomQuotaResult>, Error.<TeamSetCustomQuotaError>>}
+ */
+routes$1.teamMemberSpaceLimitsSetCustomQuota = function (arg) {
+  return this.request('team/member_space_limits/set_custom_quota', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Adds members to a team. Permission : Team member management A maximum of 20
+ * members can be specified in a single call. If no Dropbox account exists with
+ * the email address specified, a new Dropbox account will be created with the
+ * given email address, and that account will be invited to the team. If a
+ * personal Dropbox account exists with the email address specified in the call,
+ * this call will create a placeholder Dropbox account for the user on the team
+ * and send an email inviting the user to migrate their existing personal
+ * account onto the team. Team member management apps are required to set an
+ * initial given_name and surname for a user to use in the team invitation and
+ * for 'Perform as team member' actions taken on the user before they become
+ * 'active'.
+ * @function DropboxTeam#teamMembersAdd
+ * @arg {TeamMembersAddArg} arg - The request parameters.
+ * @returns {Promise.<TeamMembersAddLaunch, Error.<void>>}
+ */
+routes$1.teamMembersAdd = function (arg) {
+  return this.request('team/members/add', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once an async_job_id is returned from members/add , use this to poll the
+ * status of the asynchronous request. Permission : Team member management.
+ * @function DropboxTeam#teamMembersAddJobStatusGet
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<TeamMembersAddJobStatus, Error.<AsyncPollError>>}
+ */
+routes$1.teamMembersAddJobStatusGet = function (arg) {
+  return this.request('team/members/add/job_status/get', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Returns information about multiple team members. Permission : Team
+ * information This endpoint will return MembersGetInfoItem.id_not_found, for
+ * IDs (or emails) that cannot be matched to a valid team member.
+ * @function DropboxTeam#teamMembersGetInfo
+ * @arg {TeamMembersGetInfoArgs} arg - The request parameters.
+ * @returns {Promise.<Object, Error.<TeamMembersGetInfoError>>}
+ */
+routes$1.teamMembersGetInfo = function (arg) {
+  return this.request('team/members/get_info', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Lists members of a team. Permission : Team information.
+ * @function DropboxTeam#teamMembersList
+ * @arg {TeamMembersListArg} arg - The request parameters.
+ * @returns {Promise.<TeamMembersListResult, Error.<TeamMembersListError>>}
+ */
+routes$1.teamMembersList = function (arg) {
+  return this.request('team/members/list', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from members/list, use this to paginate
+ * through all team members. Permission : Team information.
+ * @function DropboxTeam#teamMembersListContinue
+ * @arg {TeamMembersListContinueArg} arg - The request parameters.
+ * @returns {Promise.<TeamMembersListResult, Error.<TeamMembersListContinueError>>}
+ */
+routes$1.teamMembersListContinue = function (arg) {
+  return this.request('team/members/list/continue', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Recover a deleted member. Permission : Team member management Exactly one of
+ * team_member_id, email, or external_id must be provided to identify the user
+ * account.
+ * @function DropboxTeam#teamMembersRecover
+ * @arg {TeamMembersRecoverArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<TeamMembersRecoverError>>}
+ */
+routes$1.teamMembersRecover = function (arg) {
+  return this.request('team/members/recover', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Removes a member from a team. Permission : Team member management Exactly one
+ * of team_member_id, email, or external_id must be provided to identify the
+ * user account. Accounts can be recovered via members/recover for a 7 day
+ * period or until the account has been permanently deleted or transferred to
+ * another account (whichever comes first). Calling members/add while a user is
+ * still recoverable on your team will return with
+ * MemberAddResult.user_already_on_team. Accounts can have their files
+ * transferred via the admin console for a limited time, based on the version
+ * history length associated with the team (120 days for most teams). This
+ * endpoint may initiate an asynchronous job. To obtain the final result of the
+ * job, the client should periodically poll members/remove/job_status/get.
+ * @function DropboxTeam#teamMembersRemove
+ * @arg {TeamMembersRemoveArg} arg - The request parameters.
+ * @returns {Promise.<AsyncLaunchEmptyResult, Error.<TeamMembersRemoveError>>}
+ */
+routes$1.teamMembersRemove = function (arg) {
+  return this.request('team/members/remove', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once an async_job_id is returned from members/remove , use this to poll the
+ * status of the asynchronous request. Permission : Team member management.
+ * @function DropboxTeam#teamMembersRemoveJobStatusGet
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<AsyncPollEmptyResult, Error.<AsyncPollError>>}
+ */
+routes$1.teamMembersRemoveJobStatusGet = function (arg) {
+  return this.request('team/members/remove/job_status/get', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Sends welcome email to pending team member. Permission : Team member
+ * management Exactly one of team_member_id, email, or external_id must be
+ * provided to identify the user account. No-op if team member is not pending.
+ * @function DropboxTeam#teamMembersSendWelcomeEmail
+ * @arg {TeamUserSelectorArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<TeamMembersSendWelcomeError>>}
+ */
+routes$1.teamMembersSendWelcomeEmail = function (arg) {
+  return this.request('team/members/send_welcome_email', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Updates a team member's permissions. Permission : Team member management.
+ * @function DropboxTeam#teamMembersSetAdminPermissions
+ * @arg {TeamMembersSetPermissionsArg} arg - The request parameters.
+ * @returns {Promise.<TeamMembersSetPermissionsResult, Error.<TeamMembersSetPermissionsError>>}
+ */
+routes$1.teamMembersSetAdminPermissions = function (arg) {
+  return this.request('team/members/set_admin_permissions', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Updates a team member's profile. Permission : Team member management.
+ * @function DropboxTeam#teamMembersSetProfile
+ * @arg {TeamMembersSetProfileArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamMemberInfo, Error.<TeamMembersSetProfileError>>}
+ */
+routes$1.teamMembersSetProfile = function (arg) {
+  return this.request('team/members/set_profile', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Suspend a member from a team. Permission : Team member management Exactly one
+ * of team_member_id, email, or external_id must be provided to identify the
+ * user account.
+ * @function DropboxTeam#teamMembersSuspend
+ * @arg {TeamMembersDeactivateArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<TeamMembersSuspendError>>}
+ */
+routes$1.teamMembersSuspend = function (arg) {
+  return this.request('team/members/suspend', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Unsuspend a member from a team. Permission : Team member management Exactly
+ * one of team_member_id, email, or external_id must be provided to identify the
+ * user account.
+ * @function DropboxTeam#teamMembersUnsuspend
+ * @arg {TeamMembersUnsuspendArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<TeamMembersUnsuspendError>>}
+ */
+routes$1.teamMembersUnsuspend = function (arg) {
+  return this.request('team/members/unsuspend', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Returns a list of all team-accessible namespaces. This list includes team
+ * folders, shared folders containing team members, team members' home
+ * namespaces, and team members' app folders. Home namespaces and app folders
+ * are always owned by this team or members of the team, but shared folders may
+ * be owned by other users or other teams. Duplicates may occur in the list.
+ * @function DropboxTeam#teamNamespacesList
+ * @arg {TeamTeamNamespacesListArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamNamespacesListResult, Error.<void>>}
+ */
+routes$1.teamNamespacesList = function (arg) {
+  return this.request('team/namespaces/list', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from namespaces/list, use this to paginate
+ * through all team-accessible namespaces. Duplicates may occur in the list.
+ * @function DropboxTeam#teamNamespacesListContinue
+ * @arg {TeamTeamNamespacesListContinueArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamNamespacesListResult, Error.<TeamTeamNamespacesListContinueError>>}
+ */
+routes$1.teamNamespacesListContinue = function (arg) {
+  return this.request('team/namespaces/list/continue', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * @function DropboxTeam#teamPropertiesTemplateAdd
+ * @deprecated
+ * @arg {FilePropertiesAddTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesAddTemplateResult, Error.<FilePropertiesModifyTemplateError>>}
+ */
+routes$1.teamPropertiesTemplateAdd = function (arg) {
+  return this.request('team/properties/template/add', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * @function DropboxTeam#teamPropertiesTemplateGet
+ * @deprecated
+ * @arg {FilePropertiesGetTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesGetTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes$1.teamPropertiesTemplateGet = function (arg) {
+  return this.request('team/properties/template/get', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * @function DropboxTeam#teamPropertiesTemplateList
+ * @deprecated
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesListTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes$1.teamPropertiesTemplateList = function (arg) {
+  return this.request('team/properties/template/list', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * @function DropboxTeam#teamPropertiesTemplateUpdate
+ * @deprecated
+ * @arg {FilePropertiesUpdateTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesUpdateTemplateResult, Error.<FilePropertiesModifyTemplateError>>}
+ */
+routes$1.teamPropertiesTemplateUpdate = function (arg) {
+  return this.request('team/properties/template/update', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Retrieves reporting data about a team's user activity.
+ * @function DropboxTeam#teamReportsGetActivity
+ * @arg {TeamDateRange} arg - The request parameters.
+ * @returns {Promise.<TeamGetActivityReport, Error.<TeamDateRangeError>>}
+ */
+routes$1.teamReportsGetActivity = function (arg) {
+  return this.request('team/reports/get_activity', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Retrieves reporting data about a team's linked devices.
+ * @function DropboxTeam#teamReportsGetDevices
+ * @arg {TeamDateRange} arg - The request parameters.
+ * @returns {Promise.<TeamGetDevicesReport, Error.<TeamDateRangeError>>}
+ */
+routes$1.teamReportsGetDevices = function (arg) {
+  return this.request('team/reports/get_devices', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Retrieves reporting data about a team's membership.
+ * @function DropboxTeam#teamReportsGetMembership
+ * @arg {TeamDateRange} arg - The request parameters.
+ * @returns {Promise.<TeamGetMembershipReport, Error.<TeamDateRangeError>>}
+ */
+routes$1.teamReportsGetMembership = function (arg) {
+  return this.request('team/reports/get_membership', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Retrieves reporting data about a team's storage usage.
+ * @function DropboxTeam#teamReportsGetStorage
+ * @arg {TeamDateRange} arg - The request parameters.
+ * @returns {Promise.<TeamGetStorageReport, Error.<TeamDateRangeError>>}
+ */
+routes$1.teamReportsGetStorage = function (arg) {
+  return this.request('team/reports/get_storage', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Sets an archived team folder's status to active. Permission : Team member
+ * file access.
+ * @function DropboxTeam#teamTeamFolderActivate
+ * @arg {TeamTeamFolderIdArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamFolderMetadata, Error.<TeamTeamFolderActivateError>>}
+ */
+routes$1.teamTeamFolderActivate = function (arg) {
+  return this.request('team/team_folder/activate', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Sets an active team folder's status to archived and removes all folder and
+ * file members. Permission : Team member file access.
+ * @function DropboxTeam#teamTeamFolderArchive
+ * @arg {TeamTeamFolderArchiveArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamFolderArchiveLaunch, Error.<TeamTeamFolderArchiveError>>}
+ */
+routes$1.teamTeamFolderArchive = function (arg) {
+  return this.request('team/team_folder/archive', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job for archiving a team folder.
+ * Permission : Team member file access.
+ * @function DropboxTeam#teamTeamFolderArchiveCheck
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamFolderArchiveJobStatus, Error.<AsyncPollError>>}
+ */
+routes$1.teamTeamFolderArchiveCheck = function (arg) {
+  return this.request('team/team_folder/archive/check', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Creates a new, active, team folder with no members. Permission : Team member
+ * file access.
+ * @function DropboxTeam#teamTeamFolderCreate
+ * @arg {TeamTeamFolderCreateArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamFolderMetadata, Error.<TeamTeamFolderCreateError>>}
+ */
+routes$1.teamTeamFolderCreate = function (arg) {
+  return this.request('team/team_folder/create', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Retrieves metadata for team folders. Permission : Team member file access.
+ * @function DropboxTeam#teamTeamFolderGetInfo
+ * @arg {TeamTeamFolderIdListArg} arg - The request parameters.
+ * @returns {Promise.<Array.<TeamTeamFolderGetInfoItem>, Error.<void>>}
+ */
+routes$1.teamTeamFolderGetInfo = function (arg) {
+  return this.request('team/team_folder/get_info', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Lists all team folders. Permission : Team member file access.
+ * @function DropboxTeam#teamTeamFolderList
+ * @arg {TeamTeamFolderListArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamFolderListResult, Error.<TeamTeamFolderListError>>}
+ */
+routes$1.teamTeamFolderList = function (arg) {
+  return this.request('team/team_folder/list', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from team_folder/list, use this to paginate
+ * through all team folders. Permission : Team member file access.
+ * @function DropboxTeam#teamTeamFolderListContinue
+ * @arg {TeamTeamFolderListContinueArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamFolderListResult, Error.<TeamTeamFolderListContinueError>>}
+ */
+routes$1.teamTeamFolderListContinue = function (arg) {
+  return this.request('team/team_folder/list/continue', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Permanently deletes an archived team folder. Permission : Team member file
+ * access.
+ * @function DropboxTeam#teamTeamFolderPermanentlyDelete
+ * @arg {TeamTeamFolderIdArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<TeamTeamFolderPermanentlyDeleteError>>}
+ */
+routes$1.teamTeamFolderPermanentlyDelete = function (arg) {
+  return this.request('team/team_folder/permanently_delete', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Changes an active team folder's name. Permission : Team member file access.
+ * @function DropboxTeam#teamTeamFolderRename
+ * @arg {TeamTeamFolderRenameArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamFolderMetadata, Error.<TeamTeamFolderRenameError>>}
+ */
+routes$1.teamTeamFolderRename = function (arg) {
+  return this.request('team/team_folder/rename', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Returns the member profile of the admin who generated the team access token
+ * used to make the call.
+ * @function DropboxTeam#teamTokenGetAuthenticatedAdmin
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<TeamTokenGetAuthenticatedAdminResult, Error.<TeamTokenGetAuthenticatedAdminError>>}
+ */
+routes$1.teamTokenGetAuthenticatedAdmin = function (arg) {
+  return this.request('team/token/get_authenticated_admin', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * @class DropboxTeam
+ * @extends DropboxBase
+ * @classdesc The Dropbox SDK class that provides access to team endpoints.
+ * @arg {Object} options
+ * @arg {String} [options.accessToken] - An access token for making authenticated
+ * requests.
+ * @arg {String} [options.clientId] - The client id for your app. Used to create
+ * authentication URL.
+ */
+var DropboxTeam = function (_DropboxBase) {
+  inherits(DropboxTeam, _DropboxBase);
+
+  function DropboxTeam(options) {
+    classCallCheck(this, DropboxTeam);
+
+    var _this = possibleConstructorReturn(this, (DropboxTeam.__proto__ || Object.getPrototypeOf(DropboxTeam)).call(this, options));
+
+    Object.assign(_this, routes$1);
+    return _this;
+  }
+
+  /**
+   * Returns an instance of Dropbox that can make calls to user api endpoints on
+   * behalf of the passed user id, using the team access token.
+   * @arg {String} userId - The user id to use the Dropbox class as
+   * @returns {Dropbox} An instance of Dropbox used to make calls to user api
+   * endpoints
+   */
+
+
+  createClass(DropboxTeam, [{
+    key: 'actAsUser',
+    value: function actAsUser(userId) {
+      return new Dropbox({
+        accessToken: this.accessToken,
+        clientId: this.clientId,
+        selectUser: userId
+      });
+    }
+  }]);
+  return DropboxTeam;
+}(DropboxBase);
+
+
+
+var dropboxTeam = Object.freeze({
+	DropboxTeam: DropboxTeam
+});
+
+var src = {
+  Dropbox: dropbox.Dropbox,
+  DropboxTeam: dropboxTeam.DropboxTeam
+};
+
+return src;
+
+})));
+//# sourceMappingURL=Dropbox-sdk.js.map
+
+(function (global, factory) {
+	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+	typeof define === 'function' && define.amd ? define(factory) :
+	(global.DropboxTeam = factory());
+}(this, (function () { 'use strict';
+
+// Auto-generated by Stone, do not modify.
+var routes = {};
+
+/**
+ * Creates an OAuth 2.0 access token from the supplied OAuth 1.0 access token.
+ * @function Dropbox#authTokenFromOauth1
+ * @arg {AuthTokenFromOAuth1Arg} arg - The request parameters.
+ * @returns {Promise.<AuthTokenFromOAuth1Result, Error.<AuthTokenFromOAuth1Error>>}
+ */
+routes.authTokenFromOauth1 = function (arg) {
+  return this.request('auth/token/from_oauth1', arg, 'app', 'api', 'rpc');
+};
+
+/**
+ * Disables the access token used to authenticate the call.
+ * @function Dropbox#authTokenRevoke
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<void, Error.<void>>}
+ */
+routes.authTokenRevoke = function (arg) {
+  return this.request('auth/token/revoke', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Add property groups to a Dropbox file. See templates/add_for_user or
+ * templates/add_for_team to create new templates.
+ * @function Dropbox#filePropertiesPropertiesAdd
+ * @arg {FilePropertiesAddPropertiesArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesAddPropertiesError>>}
+ */
+routes.filePropertiesPropertiesAdd = function (arg) {
+  return this.request('file_properties/properties/add', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Overwrite property groups associated with a file. This endpoint should be
+ * used instead of properties/update when property groups are being updated via
+ * a "snapshot" instead of via a "delta". In other words, this endpoint will
+ * delete all omitted fields from a property group, whereas properties/update
+ * will only delete fields that are explicitly marked for deletion.
+ * @function Dropbox#filePropertiesPropertiesOverwrite
+ * @arg {FilePropertiesOverwritePropertyGroupArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesInvalidPropertyGroupError>>}
+ */
+routes.filePropertiesPropertiesOverwrite = function (arg) {
+  return this.request('file_properties/properties/overwrite', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Permanently removes the specified property group from the file. To remove
+ * specific property field key value pairs, see properties/update. To update a
+ * template, see templates/update_for_user or templates/update_for_team.
+ * Templates can't be removed once created.
+ * @function Dropbox#filePropertiesPropertiesRemove
+ * @arg {FilePropertiesRemovePropertiesArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesRemovePropertiesError>>}
+ */
+routes.filePropertiesPropertiesRemove = function (arg) {
+  return this.request('file_properties/properties/remove', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Search across property templates for particular property field values.
+ * @function Dropbox#filePropertiesPropertiesSearch
+ * @arg {FilePropertiesPropertiesSearchArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesPropertiesSearchResult, Error.<FilePropertiesPropertiesSearchError>>}
+ */
+routes.filePropertiesPropertiesSearch = function (arg) {
+  return this.request('file_properties/properties/search', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from properties/search, use this to paginate
+ * through all search results.
+ * @function Dropbox#filePropertiesPropertiesSearchContinue
+ * @arg {FilePropertiesPropertiesSearchContinueArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesPropertiesSearchResult, Error.<FilePropertiesPropertiesSearchContinueError>>}
+ */
+routes.filePropertiesPropertiesSearchContinue = function (arg) {
+  return this.request('file_properties/properties/search/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Add, update or remove properties associated with the supplied file and
+ * templates. This endpoint should be used instead of properties/overwrite when
+ * property groups are being updated via a "delta" instead of via a "snapshot" .
+ * In other words, this endpoint will not delete any omitted fields from a
+ * property group, whereas properties/overwrite will delete any fields that are
+ * omitted from a property group.
+ * @function Dropbox#filePropertiesPropertiesUpdate
+ * @arg {FilePropertiesUpdatePropertiesArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesUpdatePropertiesError>>}
+ */
+routes.filePropertiesPropertiesUpdate = function (arg) {
+  return this.request('file_properties/properties/update', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Add a template associated with a team. See properties/add to add properties
+ * to a file or folder. Note: this endpoint will create team-owned templates.
+ * @function Dropbox#filePropertiesTemplatesAddForTeam
+ * @arg {FilePropertiesAddTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesAddTemplateResult, Error.<FilePropertiesModifyTemplateError>>}
+ */
+routes.filePropertiesTemplatesAddForTeam = function (arg) {
+  return this.request('file_properties/templates/add_for_team', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Add a template associated with a user. See properties/add to add properties
+ * to a file. This endpoint can't be called on a team member or admin's behalf.
+ * @function Dropbox#filePropertiesTemplatesAddForUser
+ * @arg {FilePropertiesAddTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesAddTemplateResult, Error.<FilePropertiesModifyTemplateError>>}
+ */
+routes.filePropertiesTemplatesAddForUser = function (arg) {
+  return this.request('file_properties/templates/add_for_user', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get the schema for a specified template.
+ * @function Dropbox#filePropertiesTemplatesGetForTeam
+ * @arg {FilePropertiesGetTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesGetTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filePropertiesTemplatesGetForTeam = function (arg) {
+  return this.request('file_properties/templates/get_for_team', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Get the schema for a specified template. This endpoint can't be called on a
+ * team member or admin's behalf.
+ * @function Dropbox#filePropertiesTemplatesGetForUser
+ * @arg {FilePropertiesGetTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesGetTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filePropertiesTemplatesGetForUser = function (arg) {
+  return this.request('file_properties/templates/get_for_user', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get the template identifiers for a team. To get the schema of each template
+ * use templates/get_for_team.
+ * @function Dropbox#filePropertiesTemplatesListForTeam
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesListTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filePropertiesTemplatesListForTeam = function (arg) {
+  return this.request('file_properties/templates/list_for_team', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Get the template identifiers for a team. To get the schema of each template
+ * use templates/get_for_user. This endpoint can't be called on a team member or
+ * admin's behalf.
+ * @function Dropbox#filePropertiesTemplatesListForUser
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesListTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filePropertiesTemplatesListForUser = function (arg) {
+  return this.request('file_properties/templates/list_for_user', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Permanently removes the specified template created from
+ * templates/add_for_user. All properties associated with the template will also
+ * be removed. This action cannot be undone.
+ * @function Dropbox#filePropertiesTemplatesRemoveForTeam
+ * @arg {FilePropertiesRemoveTemplateArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filePropertiesTemplatesRemoveForTeam = function (arg) {
+  return this.request('file_properties/templates/remove_for_team', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Permanently removes the specified template created from
+ * templates/add_for_user. All properties associated with the template will also
+ * be removed. This action cannot be undone.
+ * @function Dropbox#filePropertiesTemplatesRemoveForUser
+ * @arg {FilePropertiesRemoveTemplateArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filePropertiesTemplatesRemoveForUser = function (arg) {
+  return this.request('file_properties/templates/remove_for_user', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Update a template associated with a team. This route can update the template
+ * name, the template description and add optional properties to templates.
+ * @function Dropbox#filePropertiesTemplatesUpdateForTeam
+ * @arg {FilePropertiesUpdateTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesUpdateTemplateResult, Error.<FilePropertiesModifyTemplateError>>}
+ */
+routes.filePropertiesTemplatesUpdateForTeam = function (arg) {
+  return this.request('file_properties/templates/update_for_team', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Update a template associated with a user. This route can update the template
+ * name, the template description and add optional properties to templates. This
+ * endpoint can't be called on a team member or admin's behalf.
+ * @function Dropbox#filePropertiesTemplatesUpdateForUser
+ * @arg {FilePropertiesUpdateTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesUpdateTemplateResult, Error.<FilePropertiesModifyTemplateError>>}
+ */
+routes.filePropertiesTemplatesUpdateForUser = function (arg) {
+  return this.request('file_properties/templates/update_for_user', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Creates a file request for this user.
+ * @function Dropbox#fileRequestsCreate
+ * @arg {FileRequestsCreateFileRequestArgs} arg - The request parameters.
+ * @returns {Promise.<FileRequestsFileRequest, Error.<FileRequestsCreateFileRequestError>>}
+ */
+routes.fileRequestsCreate = function (arg) {
+  return this.request('file_requests/create', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the specified file request.
+ * @function Dropbox#fileRequestsGet
+ * @arg {FileRequestsGetFileRequestArgs} arg - The request parameters.
+ * @returns {Promise.<FileRequestsFileRequest, Error.<FileRequestsGetFileRequestError>>}
+ */
+routes.fileRequestsGet = function (arg) {
+  return this.request('file_requests/get', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns a list of file requests owned by this user. For apps with the app
+ * folder permission, this will only return file requests with destinations in
+ * the app folder.
+ * @function Dropbox#fileRequestsList
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<FileRequestsListFileRequestsResult, Error.<FileRequestsListFileRequestsError>>}
+ */
+routes.fileRequestsList = function (arg) {
+  return this.request('file_requests/list', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Update a file request.
+ * @function Dropbox#fileRequestsUpdate
+ * @arg {FileRequestsUpdateFileRequestArgs} arg - The request parameters.
+ * @returns {Promise.<FileRequestsFileRequest, Error.<FileRequestsUpdateFileRequestError>>}
+ */
+routes.fileRequestsUpdate = function (arg) {
+  return this.request('file_requests/update', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the metadata for a file or folder. This is an alpha endpoint
+ * compatible with the properties API. Note: Metadata for the root folder is
+ * unsupported.
+ * @function Dropbox#filesAlphaGetMetadata
+ * @deprecated
+ * @arg {FilesAlphaGetMetadataArg} arg - The request parameters.
+ * @returns {Promise.<(FilesFileMetadata|FilesFolderMetadata|FilesDeletedMetadata), Error.<FilesAlphaGetMetadataError>>}
+ */
+routes.filesAlphaGetMetadata = function (arg) {
+  return this.request('files/alpha/get_metadata', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Create a new file with the contents provided in the request. Note that this
+ * endpoint is part of the properties API alpha and is slightly different from
+ * upload. Do not use this to upload a file larger than 150 MB. Instead, create
+ * an upload session with upload_session/start.
+ * @function Dropbox#filesAlphaUpload
+ * @deprecated
+ * @arg {FilesCommitInfoWithProperties} arg - The request parameters.
+ * @returns {Promise.<FilesFileMetadata, Error.<FilesUploadErrorWithProperties>>}
+ */
+routes.filesAlphaUpload = function (arg) {
+  return this.request('files/alpha/upload', arg, 'user', 'content', 'upload');
+};
+
+/**
+ * Copy a file or folder to a different location in the user's Dropbox. If the
+ * source path is a folder all its contents will be copied.
+ * @function Dropbox#filesCopy
+ * @deprecated
+ * @arg {FilesRelocationArg} arg - The request parameters.
+ * @returns {Promise.<(FilesFileMetadata|FilesFolderMetadata|FilesDeletedMetadata), Error.<FilesRelocationError>>}
+ */
+routes.filesCopy = function (arg) {
+  return this.request('files/copy', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Copy multiple files or folders to different locations at once in the user's
+ * Dropbox. If RelocationBatchArg.allow_shared_folder is false, this route is
+ * atomic. If on entry failes, the whole transaction will abort. If
+ * RelocationBatchArg.allow_shared_folder is true, not atomicity is guaranteed,
+ * but you will be able to copy the contents of shared folders to new locations.
+ * This route will return job ID immediately and do the async copy job in
+ * background. Please use copy_batch/check to check the job status.
+ * @function Dropbox#filesCopyBatch
+ * @arg {FilesRelocationBatchArg} arg - The request parameters.
+ * @returns {Promise.<FilesRelocationBatchLaunch, Error.<void>>}
+ */
+routes.filesCopyBatch = function (arg) {
+  return this.request('files/copy_batch', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job for copy_batch. If success, it
+ * returns list of results for each entry.
+ * @function Dropbox#filesCopyBatchCheck
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<FilesRelocationBatchJobStatus, Error.<AsyncPollError>>}
+ */
+routes.filesCopyBatchCheck = function (arg) {
+  return this.request('files/copy_batch/check', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get a copy reference to a file or folder. This reference string can be used
+ * to save that file or folder to another user's Dropbox by passing it to
+ * copy_reference/save.
+ * @function Dropbox#filesCopyReferenceGet
+ * @arg {FilesGetCopyReferenceArg} arg - The request parameters.
+ * @returns {Promise.<FilesGetCopyReferenceResult, Error.<FilesGetCopyReferenceError>>}
+ */
+routes.filesCopyReferenceGet = function (arg) {
+  return this.request('files/copy_reference/get', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Save a copy reference returned by copy_reference/get to the user's Dropbox.
+ * @function Dropbox#filesCopyReferenceSave
+ * @arg {FilesSaveCopyReferenceArg} arg - The request parameters.
+ * @returns {Promise.<FilesSaveCopyReferenceResult, Error.<FilesSaveCopyReferenceError>>}
+ */
+routes.filesCopyReferenceSave = function (arg) {
+  return this.request('files/copy_reference/save', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Copy a file or folder to a different location in the user's Dropbox. If the
+ * source path is a folder all its contents will be copied.
+ * @function Dropbox#filesCopyV2
+ * @arg {FilesRelocationArg} arg - The request parameters.
+ * @returns {Promise.<FilesRelocationResult, Error.<FilesRelocationError>>}
+ */
+routes.filesCopyV2 = function (arg) {
+  return this.request('files/copy_v2', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Create a folder at a given path.
+ * @function Dropbox#filesCreateFolder
+ * @deprecated
+ * @arg {FilesCreateFolderArg} arg - The request parameters.
+ * @returns {Promise.<FilesFolderMetadata, Error.<FilesCreateFolderError>>}
+ */
+routes.filesCreateFolder = function (arg) {
+  return this.request('files/create_folder', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Create a folder at a given path.
+ * @function Dropbox#filesCreateFolderV2
+ * @arg {FilesCreateFolderArg} arg - The request parameters.
+ * @returns {Promise.<FilesCreateFolderResult, Error.<FilesCreateFolderError>>}
+ */
+routes.filesCreateFolderV2 = function (arg) {
+  return this.request('files/create_folder_v2', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Delete the file or folder at a given path. If the path is a folder, all its
+ * contents will be deleted too. A successful response indicates that the file
+ * or folder was deleted. The returned metadata will be the corresponding
+ * FileMetadata or FolderMetadata for the item at time of deletion, and not a
+ * DeletedMetadata object.
+ * @function Dropbox#filesDelete
+ * @deprecated
+ * @arg {FilesDeleteArg} arg - The request parameters.
+ * @returns {Promise.<(FilesFileMetadata|FilesFolderMetadata|FilesDeletedMetadata), Error.<FilesDeleteError>>}
+ */
+routes.filesDelete = function (arg) {
+  return this.request('files/delete', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Delete multiple files/folders at once. This route is asynchronous, which
+ * returns a job ID immediately and runs the delete batch asynchronously. Use
+ * delete_batch/check to check the job status.
+ * @function Dropbox#filesDeleteBatch
+ * @arg {FilesDeleteBatchArg} arg - The request parameters.
+ * @returns {Promise.<FilesDeleteBatchLaunch, Error.<void>>}
+ */
+routes.filesDeleteBatch = function (arg) {
+  return this.request('files/delete_batch', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job for delete_batch. If success, it
+ * returns list of result for each entry.
+ * @function Dropbox#filesDeleteBatchCheck
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<FilesDeleteBatchJobStatus, Error.<AsyncPollError>>}
+ */
+routes.filesDeleteBatchCheck = function (arg) {
+  return this.request('files/delete_batch/check', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Delete the file or folder at a given path. If the path is a folder, all its
+ * contents will be deleted too. A successful response indicates that the file
+ * or folder was deleted. The returned metadata will be the corresponding
+ * FileMetadata or FolderMetadata for the item at time of deletion, and not a
+ * DeletedMetadata object.
+ * @function Dropbox#filesDeleteV2
+ * @arg {FilesDeleteArg} arg - The request parameters.
+ * @returns {Promise.<FilesDeleteResult, Error.<FilesDeleteError>>}
+ */
+routes.filesDeleteV2 = function (arg) {
+  return this.request('files/delete_v2', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Download a file from a user's Dropbox.
+ * @function Dropbox#filesDownload
+ * @arg {FilesDownloadArg} arg - The request parameters.
+ * @returns {Promise.<FilesFileMetadata, Error.<FilesDownloadError>>}
+ */
+routes.filesDownload = function (arg) {
+  return this.request('files/download', arg, 'user', 'content', 'download');
+};
+
+/**
+ * Download a folder from the user's Dropbox, as a zip file. The folder must be
+ * less than 1 GB in size and have fewer than 10,000 total files. The input
+ * cannot be a single file.
+ * @function Dropbox#filesDownloadZip
+ * @arg {FilesDownloadZipArg} arg - The request parameters.
+ * @returns {Promise.<FilesDownloadZipResult, Error.<FilesDownloadZipError>>}
+ */
+routes.filesDownloadZip = function (arg) {
+  return this.request('files/download_zip', arg, 'user', 'content', 'download');
+};
+
+/**
+ * Returns the metadata for a file or folder. Note: Metadata for the root folder
+ * is unsupported.
+ * @function Dropbox#filesGetMetadata
+ * @arg {FilesGetMetadataArg} arg - The request parameters.
+ * @returns {Promise.<(FilesFileMetadata|FilesFolderMetadata|FilesDeletedMetadata), Error.<FilesGetMetadataError>>}
+ */
+routes.filesGetMetadata = function (arg) {
+  return this.request('files/get_metadata', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get a preview for a file. Currently, PDF previews are generated for files
+ * with the following extensions: .ai, .doc, .docm, .docx, .eps, .odp, .odt,
+ * .pps, .ppsm, .ppsx, .ppt, .pptm, .pptx, .rtf. HTML previews are generated for
+ * files with the following extensions: .csv, .ods, .xls, .xlsm, .xlsx. Other
+ * formats will return an unsupported extension error.
+ * @function Dropbox#filesGetPreview
+ * @arg {FilesPreviewArg} arg - The request parameters.
+ * @returns {Promise.<FilesFileMetadata, Error.<FilesPreviewError>>}
+ */
+routes.filesGetPreview = function (arg) {
+  return this.request('files/get_preview', arg, 'user', 'content', 'download');
+};
+
+/**
+ * Get a temporary link to stream content of a file. This link will expire in
+ * four hours and afterwards you will get 410 Gone. Content-Type of the link is
+ * determined automatically by the file's mime type.
+ * @function Dropbox#filesGetTemporaryLink
+ * @arg {FilesGetTemporaryLinkArg} arg - The request parameters.
+ * @returns {Promise.<FilesGetTemporaryLinkResult, Error.<FilesGetTemporaryLinkError>>}
+ */
+routes.filesGetTemporaryLink = function (arg) {
+  return this.request('files/get_temporary_link', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get a thumbnail for an image. This method currently supports files with the
+ * following file extensions: jpg, jpeg, png, tiff, tif, gif and bmp. Photos
+ * that are larger than 20MB in size won't be converted to a thumbnail.
+ * @function Dropbox#filesGetThumbnail
+ * @arg {FilesThumbnailArg} arg - The request parameters.
+ * @returns {Promise.<FilesFileMetadata, Error.<FilesThumbnailError>>}
+ */
+routes.filesGetThumbnail = function (arg) {
+  return this.request('files/get_thumbnail', arg, 'user', 'content', 'download');
+};
+
+/**
+ * Get thumbnails for a list of images. We allow up to 25 thumbnails in a single
+ * batch. This method currently supports files with the following file
+ * extensions: jpg, jpeg, png, tiff, tif, gif and bmp. Photos that are larger
+ * than 20MB in size won't be converted to a thumbnail.
+ * @function Dropbox#filesGetThumbnailBatch
+ * @arg {FilesGetThumbnailBatchArg} arg - The request parameters.
+ * @returns {Promise.<FilesGetThumbnailBatchResult, Error.<FilesGetThumbnailBatchError>>}
+ */
+routes.filesGetThumbnailBatch = function (arg) {
+  return this.request('files/get_thumbnail_batch', arg, 'user', 'content', 'rpc');
+};
+
+/**
+ * Starts returning the contents of a folder. If the result's
+ * ListFolderResult.has_more field is true, call list_folder/continue with the
+ * returned ListFolderResult.cursor to retrieve more entries. If you're using
+ * ListFolderArg.recursive set to true to keep a local cache of the contents of
+ * a Dropbox account, iterate through each entry in order and process them as
+ * follows to keep your local state in sync: For each FileMetadata, store the
+ * new entry at the given path in your local state. If the required parent
+ * folders don't exist yet, create them. If there's already something else at
+ * the given path, replace it and remove all its children. For each
+ * FolderMetadata, store the new entry at the given path in your local state. If
+ * the required parent folders don't exist yet, create them. If there's already
+ * something else at the given path, replace it but leave the children as they
+ * are. Check the new entry's FolderSharingInfo.read_only and set all its
+ * children's read-only statuses to match. For each DeletedMetadata, if your
+ * local state has something at the given path, remove it and all its children.
+ * If there's nothing at the given path, ignore this entry. Note:
+ * auth.RateLimitError may be returned if multiple list_folder or
+ * list_folder/continue calls with same parameters are made simultaneously by
+ * same API app for same user. If your app implements retry logic, please hold
+ * off the retry until the previous request finishes.
+ * @function Dropbox#filesListFolder
+ * @arg {FilesListFolderArg} arg - The request parameters.
+ * @returns {Promise.<FilesListFolderResult, Error.<FilesListFolderError>>}
+ */
+routes.filesListFolder = function (arg) {
+  return this.request('files/list_folder', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from list_folder, use this to paginate
+ * through all files and retrieve updates to the folder, following the same
+ * rules as documented for list_folder.
+ * @function Dropbox#filesListFolderContinue
+ * @arg {FilesListFolderContinueArg} arg - The request parameters.
+ * @returns {Promise.<FilesListFolderResult, Error.<FilesListFolderContinueError>>}
+ */
+routes.filesListFolderContinue = function (arg) {
+  return this.request('files/list_folder/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * A way to quickly get a cursor for the folder's state. Unlike list_folder,
+ * list_folder/get_latest_cursor doesn't return any entries. This endpoint is
+ * for app which only needs to know about new files and modifications and
+ * doesn't need to know about files that already exist in Dropbox.
+ * @function Dropbox#filesListFolderGetLatestCursor
+ * @arg {FilesListFolderArg} arg - The request parameters.
+ * @returns {Promise.<FilesListFolderGetLatestCursorResult, Error.<FilesListFolderError>>}
+ */
+routes.filesListFolderGetLatestCursor = function (arg) {
+  return this.request('files/list_folder/get_latest_cursor', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * A longpoll endpoint to wait for changes on an account. In conjunction with
+ * list_folder/continue, this call gives you a low-latency way to monitor an
+ * account for file changes. The connection will block until there are changes
+ * available or a timeout occurs. This endpoint is useful mostly for client-side
+ * apps. If you're looking for server-side notifications, check out our webhooks
+ * documentation https://www.dropbox.com/developers/reference/webhooks.
+ * @function Dropbox#filesListFolderLongpoll
+ * @arg {FilesListFolderLongpollArg} arg - The request parameters.
+ * @returns {Promise.<FilesListFolderLongpollResult, Error.<FilesListFolderLongpollError>>}
+ */
+routes.filesListFolderLongpoll = function (arg) {
+  return this.request('files/list_folder/longpoll', arg, 'noauth', 'notify', 'rpc');
+};
+
+/**
+ * Returns revisions for files based on a file path or a file id. The file path
+ * or file id is identified from the latest file entry at the given file path or
+ * id. This end point allows your app to query either by file path or file id by
+ * setting the mode parameter appropriately. In the ListRevisionsMode.path
+ * (default) mode, all revisions at the same file path as the latest file entry
+ * are returned. If revisions with the same file id are desired, then mode must
+ * be set to ListRevisionsMode.id. The ListRevisionsMode.id mode is useful to
+ * retrieve revisions for a given file across moves or renames.
+ * @function Dropbox#filesListRevisions
+ * @arg {FilesListRevisionsArg} arg - The request parameters.
+ * @returns {Promise.<FilesListRevisionsResult, Error.<FilesListRevisionsError>>}
+ */
+routes.filesListRevisions = function (arg) {
+  return this.request('files/list_revisions', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Move a file or folder to a different location in the user's Dropbox. If the
+ * source path is a folder all its contents will be moved.
+ * @function Dropbox#filesMove
+ * @deprecated
+ * @arg {FilesRelocationArg} arg - The request parameters.
+ * @returns {Promise.<(FilesFileMetadata|FilesFolderMetadata|FilesDeletedMetadata), Error.<FilesRelocationError>>}
+ */
+routes.filesMove = function (arg) {
+  return this.request('files/move', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Move multiple files or folders to different locations at once in the user's
+ * Dropbox. This route is 'all or nothing', which means if one entry fails, the
+ * whole transaction will abort. This route will return job ID immediately and
+ * do the async moving job in background. Please use move_batch/check to check
+ * the job status.
+ * @function Dropbox#filesMoveBatch
+ * @arg {FilesRelocationBatchArg} arg - The request parameters.
+ * @returns {Promise.<FilesRelocationBatchLaunch, Error.<void>>}
+ */
+routes.filesMoveBatch = function (arg) {
+  return this.request('files/move_batch', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job for move_batch. If success, it
+ * returns list of results for each entry.
+ * @function Dropbox#filesMoveBatchCheck
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<FilesRelocationBatchJobStatus, Error.<AsyncPollError>>}
+ */
+routes.filesMoveBatchCheck = function (arg) {
+  return this.request('files/move_batch/check', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Move a file or folder to a different location in the user's Dropbox. If the
+ * source path is a folder all its contents will be moved.
+ * @function Dropbox#filesMoveV2
+ * @arg {FilesRelocationArg} arg - The request parameters.
+ * @returns {Promise.<FilesRelocationResult, Error.<FilesRelocationError>>}
+ */
+routes.filesMoveV2 = function (arg) {
+  return this.request('files/move_v2', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Permanently delete the file or folder at a given path (see
+ * https://www.dropbox.com/en/help/40). Note: This endpoint is only available
+ * for Dropbox Business apps.
+ * @function Dropbox#filesPermanentlyDelete
+ * @arg {FilesDeleteArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilesDeleteError>>}
+ */
+routes.filesPermanentlyDelete = function (arg) {
+  return this.request('files/permanently_delete', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * @function Dropbox#filesPropertiesAdd
+ * @deprecated
+ * @arg {FilePropertiesAddPropertiesArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesAddPropertiesError>>}
+ */
+routes.filesPropertiesAdd = function (arg) {
+  return this.request('files/properties/add', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * @function Dropbox#filesPropertiesOverwrite
+ * @deprecated
+ * @arg {FilePropertiesOverwritePropertyGroupArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesInvalidPropertyGroupError>>}
+ */
+routes.filesPropertiesOverwrite = function (arg) {
+  return this.request('files/properties/overwrite', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * @function Dropbox#filesPropertiesRemove
+ * @deprecated
+ * @arg {FilePropertiesRemovePropertiesArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesRemovePropertiesError>>}
+ */
+routes.filesPropertiesRemove = function (arg) {
+  return this.request('files/properties/remove', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * @function Dropbox#filesPropertiesTemplateGet
+ * @deprecated
+ * @arg {FilePropertiesGetTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesGetTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filesPropertiesTemplateGet = function (arg) {
+  return this.request('files/properties/template/get', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * @function Dropbox#filesPropertiesTemplateList
+ * @deprecated
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesListTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes.filesPropertiesTemplateList = function (arg) {
+  return this.request('files/properties/template/list', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * @function Dropbox#filesPropertiesUpdate
+ * @deprecated
+ * @arg {FilePropertiesUpdatePropertiesArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilePropertiesUpdatePropertiesError>>}
+ */
+routes.filesPropertiesUpdate = function (arg) {
+  return this.request('files/properties/update', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Restore a file to a specific revision.
+ * @function Dropbox#filesRestore
+ * @arg {FilesRestoreArg} arg - The request parameters.
+ * @returns {Promise.<FilesFileMetadata, Error.<FilesRestoreError>>}
+ */
+routes.filesRestore = function (arg) {
+  return this.request('files/restore', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Save a specified URL into a file in user's Dropbox. If the given path already
+ * exists, the file will be renamed to avoid the conflict (e.g. myfile (1).txt).
+ * @function Dropbox#filesSaveUrl
+ * @arg {FilesSaveUrlArg} arg - The request parameters.
+ * @returns {Promise.<FilesSaveUrlResult, Error.<FilesSaveUrlError>>}
+ */
+routes.filesSaveUrl = function (arg) {
+  return this.request('files/save_url', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Check the status of a save_url job.
+ * @function Dropbox#filesSaveUrlCheckJobStatus
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<FilesSaveUrlJobStatus, Error.<AsyncPollError>>}
+ */
+routes.filesSaveUrlCheckJobStatus = function (arg) {
+  return this.request('files/save_url/check_job_status', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Searches for files and folders. Note: Recent changes may not immediately be
+ * reflected in search results due to a short delay in indexing.
+ * @function Dropbox#filesSearch
+ * @arg {FilesSearchArg} arg - The request parameters.
+ * @returns {Promise.<FilesSearchResult, Error.<FilesSearchError>>}
+ */
+routes.filesSearch = function (arg) {
+  return this.request('files/search', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Create a new file with the contents provided in the request. Do not use this
+ * to upload a file larger than 150 MB. Instead, create an upload session with
+ * upload_session/start.
+ * @function Dropbox#filesUpload
+ * @arg {FilesCommitInfo} arg - The request parameters.
+ * @returns {Promise.<FilesFileMetadata, Error.<FilesUploadError>>}
+ */
+routes.filesUpload = function (arg) {
+  return this.request('files/upload', arg, 'user', 'content', 'upload');
+};
+
+/**
+ * Append more data to an upload session. A single request should not upload
+ * more than 150 MB.
+ * @function Dropbox#filesUploadSessionAppend
+ * @deprecated
+ * @arg {FilesUploadSessionCursor} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilesUploadSessionLookupError>>}
+ */
+routes.filesUploadSessionAppend = function (arg) {
+  return this.request('files/upload_session/append', arg, 'user', 'content', 'upload');
+};
+
+/**
+ * Append more data to an upload session. When the parameter close is set, this
+ * call will close the session. A single request should not upload more than 150
+ * MB.
+ * @function Dropbox#filesUploadSessionAppendV2
+ * @arg {FilesUploadSessionAppendArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<FilesUploadSessionLookupError>>}
+ */
+routes.filesUploadSessionAppendV2 = function (arg) {
+  return this.request('files/upload_session/append_v2', arg, 'user', 'content', 'upload');
+};
+
+/**
+ * Finish an upload session and save the uploaded data to the given file path. A
+ * single request should not upload more than 150 MB.
+ * @function Dropbox#filesUploadSessionFinish
+ * @arg {FilesUploadSessionFinishArg} arg - The request parameters.
+ * @returns {Promise.<FilesFileMetadata, Error.<FilesUploadSessionFinishError>>}
+ */
+routes.filesUploadSessionFinish = function (arg) {
+  return this.request('files/upload_session/finish', arg, 'user', 'content', 'upload');
+};
+
+/**
+ * This route helps you commit many files at once into a user's Dropbox. Use
+ * upload_session/start and upload_session/append_v2 to upload file contents. We
+ * recommend uploading many files in parallel to increase throughput. Once the
+ * file contents have been uploaded, rather than calling upload_session/finish,
+ * use this route to finish all your upload sessions in a single request.
+ * UploadSessionStartArg.close or UploadSessionAppendArg.close needs to be true
+ * for the last upload_session/start or upload_session/append_v2 call. This
+ * route will return a job_id immediately and do the async commit job in
+ * background. Use upload_session/finish_batch/check to check the job status.
+ * For the same account, this route should be executed serially. That means you
+ * should not start the next job before current job finishes. We allow up to
+ * 1000 entries in a single request.
+ * @function Dropbox#filesUploadSessionFinishBatch
+ * @arg {FilesUploadSessionFinishBatchArg} arg - The request parameters.
+ * @returns {Promise.<FilesUploadSessionFinishBatchLaunch, Error.<void>>}
+ */
+routes.filesUploadSessionFinishBatch = function (arg) {
+  return this.request('files/upload_session/finish_batch', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job for upload_session/finish_batch. If
+ * success, it returns list of result for each entry.
+ * @function Dropbox#filesUploadSessionFinishBatchCheck
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<FilesUploadSessionFinishBatchJobStatus, Error.<AsyncPollError>>}
+ */
+routes.filesUploadSessionFinishBatchCheck = function (arg) {
+  return this.request('files/upload_session/finish_batch/check', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Upload sessions allow you to upload a single file in one or more requests,
+ * for example where the size of the file is greater than 150 MB.  This call
+ * starts a new upload session with the given data. You can then use
+ * upload_session/append_v2 to add more data and upload_session/finish to save
+ * all the data to a file in Dropbox. A single request should not upload more
+ * than 150 MB. An upload session can be used for a maximum of 48 hours.
+ * Attempting to use an UploadSessionStartResult.session_id with
+ * upload_session/append_v2 or upload_session/finish more than 48 hours after
+ * its creation will return a UploadSessionLookupError.not_found.
+ * @function Dropbox#filesUploadSessionStart
+ * @arg {FilesUploadSessionStartArg} arg - The request parameters.
+ * @returns {Promise.<FilesUploadSessionStartResult, Error.<void>>}
+ */
+routes.filesUploadSessionStart = function (arg) {
+  return this.request('files/upload_session/start', arg, 'user', 'content', 'upload');
+};
+
+/**
+ * Marks the given Paper doc as archived. Note: This action can be performed or
+ * undone by anyone with edit permissions to the doc.
+ * @function Dropbox#paperDocsArchive
+ * @arg {PaperRefPaperDoc} arg - The request parameters.
+ * @returns {Promise.<void, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsArchive = function (arg) {
+  return this.request('paper/docs/archive', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Creates a new Paper doc with the provided content.
+ * @function Dropbox#paperDocsCreate
+ * @arg {PaperPaperDocCreateArgs} arg - The request parameters.
+ * @returns {Promise.<PaperPaperDocCreateUpdateResult, Error.<PaperPaperDocCreateError>>}
+ */
+routes.paperDocsCreate = function (arg) {
+  return this.request('paper/docs/create', arg, 'user', 'api', 'upload');
+};
+
+/**
+ * Exports and downloads Paper doc either as HTML or markdown.
+ * @function Dropbox#paperDocsDownload
+ * @arg {PaperPaperDocExport} arg - The request parameters.
+ * @returns {Promise.<PaperPaperDocExportResult, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsDownload = function (arg) {
+  return this.request('paper/docs/download', arg, 'user', 'api', 'download');
+};
+
+/**
+ * Lists the users who are explicitly invited to the Paper folder in which the
+ * Paper doc is contained. For private folders all users (including owner)
+ * shared on the folder are listed and for team folders all non-team users
+ * shared on the folder are returned.
+ * @function Dropbox#paperDocsFolderUsersList
+ * @arg {PaperListUsersOnFolderArgs} arg - The request parameters.
+ * @returns {Promise.<PaperListUsersOnFolderResponse, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsFolderUsersList = function (arg) {
+  return this.request('paper/docs/folder_users/list', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from docs/folder_users/list, use this to
+ * paginate through all users on the Paper folder.
+ * @function Dropbox#paperDocsFolderUsersListContinue
+ * @arg {PaperListUsersOnFolderContinueArgs} arg - The request parameters.
+ * @returns {Promise.<PaperListUsersOnFolderResponse, Error.<PaperListUsersCursorError>>}
+ */
+routes.paperDocsFolderUsersListContinue = function (arg) {
+  return this.request('paper/docs/folder_users/list/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Retrieves folder information for the given Paper doc. This includes:   -
+ * folder sharing policy; permissions for subfolders are set by the top-level
+ * folder.   - full 'filepath', i.e. the list of folders (both folderId and
+ * folderName) from     the root folder to the folder directly containing the
+ * Paper doc.  Note: If the Paper doc is not in any folder (aka unfiled) the
+ * response will be empty.
+ * @function Dropbox#paperDocsGetFolderInfo
+ * @arg {PaperRefPaperDoc} arg - The request parameters.
+ * @returns {Promise.<PaperFoldersContainingPaperDoc, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsGetFolderInfo = function (arg) {
+  return this.request('paper/docs/get_folder_info', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Return the list of all Paper docs according to the argument specifications.
+ * To iterate over through the full pagination, pass the cursor to
+ * docs/list/continue.
+ * @function Dropbox#paperDocsList
+ * @arg {PaperListPaperDocsArgs} arg - The request parameters.
+ * @returns {Promise.<PaperListPaperDocsResponse, Error.<void>>}
+ */
+routes.paperDocsList = function (arg) {
+  return this.request('paper/docs/list', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from docs/list, use this to paginate through
+ * all Paper doc.
+ * @function Dropbox#paperDocsListContinue
+ * @arg {PaperListPaperDocsContinueArgs} arg - The request parameters.
+ * @returns {Promise.<PaperListPaperDocsResponse, Error.<PaperListDocsCursorError>>}
+ */
+routes.paperDocsListContinue = function (arg) {
+  return this.request('paper/docs/list/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Permanently deletes the given Paper doc. This operation is final as the doc
+ * cannot be recovered.  Note: This action can be performed only by the doc
+ * owner.
+ * @function Dropbox#paperDocsPermanentlyDelete
+ * @arg {PaperRefPaperDoc} arg - The request parameters.
+ * @returns {Promise.<void, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsPermanentlyDelete = function (arg) {
+  return this.request('paper/docs/permanently_delete', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Gets the default sharing policy for the given Paper doc.
+ * @function Dropbox#paperDocsSharingPolicyGet
+ * @arg {PaperRefPaperDoc} arg - The request parameters.
+ * @returns {Promise.<PaperSharingPolicy, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsSharingPolicyGet = function (arg) {
+  return this.request('paper/docs/sharing_policy/get', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Sets the default sharing policy for the given Paper doc. The default
+ * 'team_sharing_policy' can be changed only by teams, omit this field for
+ * personal accounts.  Note: 'public_sharing_policy' cannot be set to the value
+ * 'disabled' because this setting can be changed only via the team admin
+ * console.
+ * @function Dropbox#paperDocsSharingPolicySet
+ * @arg {PaperPaperDocSharingPolicy} arg - The request parameters.
+ * @returns {Promise.<void, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsSharingPolicySet = function (arg) {
+  return this.request('paper/docs/sharing_policy/set', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Updates an existing Paper doc with the provided content.
+ * @function Dropbox#paperDocsUpdate
+ * @arg {PaperPaperDocUpdateArgs} arg - The request parameters.
+ * @returns {Promise.<PaperPaperDocCreateUpdateResult, Error.<PaperPaperDocUpdateError>>}
+ */
+routes.paperDocsUpdate = function (arg) {
+  return this.request('paper/docs/update', arg, 'user', 'api', 'upload');
+};
+
+/**
+ * Allows an owner or editor to add users to a Paper doc or change their
+ * permissions using their email address or Dropbox account ID.  Note: The Doc
+ * owner's permissions cannot be changed.
+ * @function Dropbox#paperDocsUsersAdd
+ * @arg {PaperAddPaperDocUser} arg - The request parameters.
+ * @returns {Promise.<Array.<PaperAddPaperDocUserMemberResult>, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsUsersAdd = function (arg) {
+  return this.request('paper/docs/users/add', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Lists all users who visited the Paper doc or users with explicit access. This
+ * call excludes users who have been removed. The list is sorted by the date of
+ * the visit or the share date. The list will include both users, the explicitly
+ * shared ones as well as those who came in using the Paper url link.
+ * @function Dropbox#paperDocsUsersList
+ * @arg {PaperListUsersOnPaperDocArgs} arg - The request parameters.
+ * @returns {Promise.<PaperListUsersOnPaperDocResponse, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsUsersList = function (arg) {
+  return this.request('paper/docs/users/list', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from docs/users/list, use this to paginate
+ * through all users on the Paper doc.
+ * @function Dropbox#paperDocsUsersListContinue
+ * @arg {PaperListUsersOnPaperDocContinueArgs} arg - The request parameters.
+ * @returns {Promise.<PaperListUsersOnPaperDocResponse, Error.<PaperListUsersCursorError>>}
+ */
+routes.paperDocsUsersListContinue = function (arg) {
+  return this.request('paper/docs/users/list/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Allows an owner or editor to remove users from a Paper doc using their email
+ * address or Dropbox account ID.  Note: Doc owner cannot be removed.
+ * @function Dropbox#paperDocsUsersRemove
+ * @arg {PaperRemovePaperDocUser} arg - The request parameters.
+ * @returns {Promise.<void, Error.<PaperDocLookupError>>}
+ */
+routes.paperDocsUsersRemove = function (arg) {
+  return this.request('paper/docs/users/remove', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Adds specified members to a file.
+ * @function Dropbox#sharingAddFileMember
+ * @arg {SharingAddFileMemberArgs} arg - The request parameters.
+ * @returns {Promise.<Array.<SharingFileMemberActionResult>, Error.<SharingAddFileMemberError>>}
+ */
+routes.sharingAddFileMember = function (arg) {
+  return this.request('sharing/add_file_member', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Allows an owner or editor (if the ACL update policy allows) of a shared
+ * folder to add another member. For the new member to get access to all the
+ * functionality for this folder, you will need to call mount_folder on their
+ * behalf. Apps must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingAddFolderMember
+ * @arg {SharingAddFolderMemberArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<SharingAddFolderMemberError>>}
+ */
+routes.sharingAddFolderMember = function (arg) {
+  return this.request('sharing/add_folder_member', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Identical to update_file_member but with less information returned.
+ * @function Dropbox#sharingChangeFileMemberAccess
+ * @deprecated
+ * @arg {SharingChangeFileMemberAccessArgs} arg - The request parameters.
+ * @returns {Promise.<SharingFileMemberActionResult, Error.<SharingFileMemberActionError>>}
+ */
+routes.sharingChangeFileMemberAccess = function (arg) {
+  return this.request('sharing/change_file_member_access', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job. Apps must have full Dropbox access
+ * to use this endpoint.
+ * @function Dropbox#sharingCheckJobStatus
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<SharingJobStatus, Error.<AsyncPollError>>}
+ */
+routes.sharingCheckJobStatus = function (arg) {
+  return this.request('sharing/check_job_status', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job for sharing a folder. Apps must
+ * have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingCheckRemoveMemberJobStatus
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<SharingRemoveMemberJobStatus, Error.<AsyncPollError>>}
+ */
+routes.sharingCheckRemoveMemberJobStatus = function (arg) {
+  return this.request('sharing/check_remove_member_job_status', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job for sharing a folder. Apps must
+ * have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingCheckShareJobStatus
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<SharingShareFolderJobStatus, Error.<AsyncPollError>>}
+ */
+routes.sharingCheckShareJobStatus = function (arg) {
+  return this.request('sharing/check_share_job_status', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Create a shared link. If a shared link already exists for the given path,
+ * that link is returned. Note that in the returned PathLinkMetadata, the
+ * PathLinkMetadata.url field is the shortened URL if
+ * CreateSharedLinkArg.short_url argument is set to true. Previously, it was
+ * technically possible to break a shared link by moving or renaming the
+ * corresponding file or folder. In the future, this will no longer be the case,
+ * so your app shouldn't rely on this behavior. Instead, if your app needs to
+ * revoke a shared link, use revoke_shared_link.
+ * @function Dropbox#sharingCreateSharedLink
+ * @deprecated
+ * @arg {SharingCreateSharedLinkArg} arg - The request parameters.
+ * @returns {Promise.<SharingPathLinkMetadata, Error.<SharingCreateSharedLinkError>>}
+ */
+routes.sharingCreateSharedLink = function (arg) {
+  return this.request('sharing/create_shared_link', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Create a shared link with custom settings. If no settings are given then the
+ * default visibility is RequestedVisibility.public (The resolved visibility,
+ * though, may depend on other aspects such as team and shared folder settings).
+ * @function Dropbox#sharingCreateSharedLinkWithSettings
+ * @arg {SharingCreateSharedLinkWithSettingsArg} arg - The request parameters.
+ * @returns {Promise.<(SharingFileLinkMetadata|SharingFolderLinkMetadata|SharingSharedLinkMetadata), Error.<SharingCreateSharedLinkWithSettingsError>>}
+ */
+routes.sharingCreateSharedLinkWithSettings = function (arg) {
+  return this.request('sharing/create_shared_link_with_settings', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns shared file metadata.
+ * @function Dropbox#sharingGetFileMetadata
+ * @arg {SharingGetFileMetadataArg} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFileMetadata, Error.<SharingGetFileMetadataError>>}
+ */
+routes.sharingGetFileMetadata = function (arg) {
+  return this.request('sharing/get_file_metadata', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns shared file metadata.
+ * @function Dropbox#sharingGetFileMetadataBatch
+ * @arg {SharingGetFileMetadataBatchArg} arg - The request parameters.
+ * @returns {Promise.<Array.<SharingGetFileMetadataBatchResult>, Error.<SharingSharingUserError>>}
+ */
+routes.sharingGetFileMetadataBatch = function (arg) {
+  return this.request('sharing/get_file_metadata/batch', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns shared folder metadata by its folder ID. Apps must have full Dropbox
+ * access to use this endpoint.
+ * @function Dropbox#sharingGetFolderMetadata
+ * @arg {SharingGetMetadataArgs} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFolderMetadata, Error.<SharingSharedFolderAccessError>>}
+ */
+routes.sharingGetFolderMetadata = function (arg) {
+  return this.request('sharing/get_folder_metadata', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Download the shared link's file from a user's Dropbox.
+ * @function Dropbox#sharingGetSharedLinkFile
+ * @arg {Object} arg - The request parameters.
+ * @returns {Promise.<(SharingFileLinkMetadata|SharingFolderLinkMetadata|SharingSharedLinkMetadata), Error.<SharingGetSharedLinkFileError>>}
+ */
+routes.sharingGetSharedLinkFile = function (arg) {
+  return this.request('sharing/get_shared_link_file', arg, 'user', 'content', 'download');
+};
+
+/**
+ * Get the shared link's metadata.
+ * @function Dropbox#sharingGetSharedLinkMetadata
+ * @arg {SharingGetSharedLinkMetadataArg} arg - The request parameters.
+ * @returns {Promise.<(SharingFileLinkMetadata|SharingFolderLinkMetadata|SharingSharedLinkMetadata), Error.<SharingSharedLinkError>>}
+ */
+routes.sharingGetSharedLinkMetadata = function (arg) {
+  return this.request('sharing/get_shared_link_metadata', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns a list of LinkMetadata objects for this user, including collection
+ * links. If no path is given, returns a list of all shared links for the
+ * current user, including collection links, up to a maximum of 1000 links. If a
+ * non-empty path is given, returns a list of all shared links that allow access
+ * to the given path.  Collection links are never returned in this case. Note
+ * that the url field in the response is never the shortened URL.
+ * @function Dropbox#sharingGetSharedLinks
+ * @deprecated
+ * @arg {SharingGetSharedLinksArg} arg - The request parameters.
+ * @returns {Promise.<SharingGetSharedLinksResult, Error.<SharingGetSharedLinksError>>}
+ */
+routes.sharingGetSharedLinks = function (arg) {
+  return this.request('sharing/get_shared_links', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Use to obtain the members who have been invited to a file, both inherited and
+ * uninherited members.
+ * @function Dropbox#sharingListFileMembers
+ * @arg {SharingListFileMembersArg} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFileMembers, Error.<SharingListFileMembersError>>}
+ */
+routes.sharingListFileMembers = function (arg) {
+  return this.request('sharing/list_file_members', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get members of multiple files at once. The arguments to this route are more
+ * limited, and the limit on query result size per file is more strict. To
+ * customize the results more, use the individual file endpoint. Inherited users
+ * and groups are not included in the result, and permissions are not returned
+ * for this endpoint.
+ * @function Dropbox#sharingListFileMembersBatch
+ * @arg {SharingListFileMembersBatchArg} arg - The request parameters.
+ * @returns {Promise.<Array.<SharingListFileMembersBatchResult>, Error.<SharingSharingUserError>>}
+ */
+routes.sharingListFileMembersBatch = function (arg) {
+  return this.request('sharing/list_file_members/batch', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from list_file_members or
+ * list_file_members/batch, use this to paginate through all shared file
+ * members.
+ * @function Dropbox#sharingListFileMembersContinue
+ * @arg {SharingListFileMembersContinueArg} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFileMembers, Error.<SharingListFileMembersContinueError>>}
+ */
+routes.sharingListFileMembersContinue = function (arg) {
+  return this.request('sharing/list_file_members/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns shared folder membership by its folder ID. Apps must have full
+ * Dropbox access to use this endpoint.
+ * @function Dropbox#sharingListFolderMembers
+ * @arg {SharingListFolderMembersArgs} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFolderMembers, Error.<SharingSharedFolderAccessError>>}
+ */
+routes.sharingListFolderMembers = function (arg) {
+  return this.request('sharing/list_folder_members', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from list_folder_members, use this to
+ * paginate through all shared folder members. Apps must have full Dropbox
+ * access to use this endpoint.
+ * @function Dropbox#sharingListFolderMembersContinue
+ * @arg {SharingListFolderMembersContinueArg} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFolderMembers, Error.<SharingListFolderMembersContinueError>>}
+ */
+routes.sharingListFolderMembersContinue = function (arg) {
+  return this.request('sharing/list_folder_members/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Return the list of all shared folders the current user has access to. Apps
+ * must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingListFolders
+ * @arg {SharingListFoldersArgs} arg - The request parameters.
+ * @returns {Promise.<SharingListFoldersResult, Error.<void>>}
+ */
+routes.sharingListFolders = function (arg) {
+  return this.request('sharing/list_folders', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from list_folders, use this to paginate
+ * through all shared folders. The cursor must come from a previous call to
+ * list_folders or list_folders/continue. Apps must have full Dropbox access to
+ * use this endpoint.
+ * @function Dropbox#sharingListFoldersContinue
+ * @arg {SharingListFoldersContinueArg} arg - The request parameters.
+ * @returns {Promise.<SharingListFoldersResult, Error.<SharingListFoldersContinueError>>}
+ */
+routes.sharingListFoldersContinue = function (arg) {
+  return this.request('sharing/list_folders/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Return the list of all shared folders the current user can mount or unmount.
+ * Apps must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingListMountableFolders
+ * @arg {SharingListFoldersArgs} arg - The request parameters.
+ * @returns {Promise.<SharingListFoldersResult, Error.<void>>}
+ */
+routes.sharingListMountableFolders = function (arg) {
+  return this.request('sharing/list_mountable_folders', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from list_mountable_folders, use this to
+ * paginate through all mountable shared folders. The cursor must come from a
+ * previous call to list_mountable_folders or list_mountable_folders/continue.
+ * Apps must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingListMountableFoldersContinue
+ * @arg {SharingListFoldersContinueArg} arg - The request parameters.
+ * @returns {Promise.<SharingListFoldersResult, Error.<SharingListFoldersContinueError>>}
+ */
+routes.sharingListMountableFoldersContinue = function (arg) {
+  return this.request('sharing/list_mountable_folders/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Returns a list of all files shared with current user.  Does not include files
+ * the user has received via shared folders, and does  not include unclaimed
+ * invitations.
+ * @function Dropbox#sharingListReceivedFiles
+ * @arg {SharingListFilesArg} arg - The request parameters.
+ * @returns {Promise.<SharingListFilesResult, Error.<SharingSharingUserError>>}
+ */
+routes.sharingListReceivedFiles = function (arg) {
+  return this.request('sharing/list_received_files', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get more results with a cursor from list_received_files.
+ * @function Dropbox#sharingListReceivedFilesContinue
+ * @arg {SharingListFilesContinueArg} arg - The request parameters.
+ * @returns {Promise.<SharingListFilesResult, Error.<SharingListFilesContinueError>>}
+ */
+routes.sharingListReceivedFilesContinue = function (arg) {
+  return this.request('sharing/list_received_files/continue', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * List shared links of this user. If no path is given, returns a list of all
+ * shared links for the current user. If a non-empty path is given, returns a
+ * list of all shared links that allow access to the given path - direct links
+ * to the given path and links to parent folders of the given path. Links to
+ * parent folders can be suppressed by setting direct_only to true.
+ * @function Dropbox#sharingListSharedLinks
+ * @arg {SharingListSharedLinksArg} arg - The request parameters.
+ * @returns {Promise.<SharingListSharedLinksResult, Error.<SharingListSharedLinksError>>}
+ */
+routes.sharingListSharedLinks = function (arg) {
+  return this.request('sharing/list_shared_links', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Modify the shared link's settings. If the requested visibility conflict with
+ * the shared links policy of the team or the shared folder (in case the linked
+ * file is part of a shared folder) then the LinkPermissions.resolved_visibility
+ * of the returned SharedLinkMetadata will reflect the actual visibility of the
+ * shared link and the LinkPermissions.requested_visibility will reflect the
+ * requested visibility.
+ * @function Dropbox#sharingModifySharedLinkSettings
+ * @arg {SharingModifySharedLinkSettingsArgs} arg - The request parameters.
+ * @returns {Promise.<(SharingFileLinkMetadata|SharingFolderLinkMetadata|SharingSharedLinkMetadata), Error.<SharingModifySharedLinkSettingsError>>}
+ */
+routes.sharingModifySharedLinkSettings = function (arg) {
+  return this.request('sharing/modify_shared_link_settings', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * The current user mounts the designated folder. Mount a shared folder for a
+ * user after they have been added as a member. Once mounted, the shared folder
+ * will appear in their Dropbox. Apps must have full Dropbox access to use this
+ * endpoint.
+ * @function Dropbox#sharingMountFolder
+ * @arg {SharingMountFolderArg} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFolderMetadata, Error.<SharingMountFolderError>>}
+ */
+routes.sharingMountFolder = function (arg) {
+  return this.request('sharing/mount_folder', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * The current user relinquishes their membership in the designated file. Note
+ * that the current user may still have inherited access to this file through
+ * the parent folder. Apps must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingRelinquishFileMembership
+ * @arg {SharingRelinquishFileMembershipArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<SharingRelinquishFileMembershipError>>}
+ */
+routes.sharingRelinquishFileMembership = function (arg) {
+  return this.request('sharing/relinquish_file_membership', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * The current user relinquishes their membership in the designated shared
+ * folder and will no longer have access to the folder.  A folder owner cannot
+ * relinquish membership in their own folder. This will run synchronously if
+ * leave_a_copy is false, and asynchronously if leave_a_copy is true. Apps must
+ * have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingRelinquishFolderMembership
+ * @arg {SharingRelinquishFolderMembershipArg} arg - The request parameters.
+ * @returns {Promise.<AsyncLaunchEmptyResult, Error.<SharingRelinquishFolderMembershipError>>}
+ */
+routes.sharingRelinquishFolderMembership = function (arg) {
+  return this.request('sharing/relinquish_folder_membership', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Identical to remove_file_member_2 but with less information returned.
+ * @function Dropbox#sharingRemoveFileMember
+ * @deprecated
+ * @arg {SharingRemoveFileMemberArg} arg - The request parameters.
+ * @returns {Promise.<SharingFileMemberActionIndividualResult, Error.<SharingRemoveFileMemberError>>}
+ */
+routes.sharingRemoveFileMember = function (arg) {
+  return this.request('sharing/remove_file_member', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Removes a specified member from the file.
+ * @function Dropbox#sharingRemoveFileMember2
+ * @arg {SharingRemoveFileMemberArg} arg - The request parameters.
+ * @returns {Promise.<SharingFileMemberRemoveActionResult, Error.<SharingRemoveFileMemberError>>}
+ */
+routes.sharingRemoveFileMember2 = function (arg) {
+  return this.request('sharing/remove_file_member_2', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Allows an owner or editor (if the ACL update policy allows) of a shared
+ * folder to remove another member. Apps must have full Dropbox access to use
+ * this endpoint.
+ * @function Dropbox#sharingRemoveFolderMember
+ * @arg {SharingRemoveFolderMemberArg} arg - The request parameters.
+ * @returns {Promise.<AsyncLaunchResultBase, Error.<SharingRemoveFolderMemberError>>}
+ */
+routes.sharingRemoveFolderMember = function (arg) {
+  return this.request('sharing/remove_folder_member', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Revoke a shared link. Note that even after revoking a shared link to a file,
+ * the file may be accessible if there are shared links leading to any of the
+ * file parent folders. To list all shared links that enable access to a
+ * specific file, you can use the list_shared_links with the file as the
+ * ListSharedLinksArg.path argument.
+ * @function Dropbox#sharingRevokeSharedLink
+ * @arg {SharingRevokeSharedLinkArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<SharingRevokeSharedLinkError>>}
+ */
+routes.sharingRevokeSharedLink = function (arg) {
+  return this.request('sharing/revoke_shared_link', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Share a folder with collaborators. Most sharing will be completed
+ * synchronously. Large folders will be completed asynchronously. To make
+ * testing the async case repeatable, set `ShareFolderArg.force_async`. If a
+ * ShareFolderLaunch.async_job_id is returned, you'll need to call
+ * check_share_job_status until the action completes to get the metadata for the
+ * folder. Apps must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingShareFolder
+ * @arg {SharingShareFolderArg} arg - The request parameters.
+ * @returns {Promise.<SharingShareFolderLaunch, Error.<SharingShareFolderError>>}
+ */
+routes.sharingShareFolder = function (arg) {
+  return this.request('sharing/share_folder', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Transfer ownership of a shared folder to a member of the shared folder. User
+ * must have AccessLevel.owner access to the shared folder to perform a
+ * transfer. Apps must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingTransferFolder
+ * @arg {SharingTransferFolderArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<SharingTransferFolderError>>}
+ */
+routes.sharingTransferFolder = function (arg) {
+  return this.request('sharing/transfer_folder', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * The current user unmounts the designated folder. They can re-mount the folder
+ * at a later time using mount_folder. Apps must have full Dropbox access to use
+ * this endpoint.
+ * @function Dropbox#sharingUnmountFolder
+ * @arg {SharingUnmountFolderArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<SharingUnmountFolderError>>}
+ */
+routes.sharingUnmountFolder = function (arg) {
+  return this.request('sharing/unmount_folder', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Remove all members from this file. Does not remove inherited members.
+ * @function Dropbox#sharingUnshareFile
+ * @arg {SharingUnshareFileArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<SharingUnshareFileError>>}
+ */
+routes.sharingUnshareFile = function (arg) {
+  return this.request('sharing/unshare_file', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Allows a shared folder owner to unshare the folder. You'll need to call
+ * check_job_status to determine if the action has completed successfully. Apps
+ * must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingUnshareFolder
+ * @arg {SharingUnshareFolderArg} arg - The request parameters.
+ * @returns {Promise.<AsyncLaunchEmptyResult, Error.<SharingUnshareFolderError>>}
+ */
+routes.sharingUnshareFolder = function (arg) {
+  return this.request('sharing/unshare_folder', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Changes a member's access on a shared file.
+ * @function Dropbox#sharingUpdateFileMember
+ * @arg {SharingUpdateFileMemberArgs} arg - The request parameters.
+ * @returns {Promise.<SharingMemberAccessLevelResult, Error.<SharingFileMemberActionError>>}
+ */
+routes.sharingUpdateFileMember = function (arg) {
+  return this.request('sharing/update_file_member', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Allows an owner or editor of a shared folder to update another member's
+ * permissions. Apps must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingUpdateFolderMember
+ * @arg {SharingUpdateFolderMemberArg} arg - The request parameters.
+ * @returns {Promise.<SharingMemberAccessLevelResult, Error.<SharingUpdateFolderMemberError>>}
+ */
+routes.sharingUpdateFolderMember = function (arg) {
+  return this.request('sharing/update_folder_member', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Update the sharing policies for a shared folder. User must have
+ * AccessLevel.owner access to the shared folder to update its policies. Apps
+ * must have full Dropbox access to use this endpoint.
+ * @function Dropbox#sharingUpdateFolderPolicy
+ * @arg {SharingUpdateFolderPolicyArg} arg - The request parameters.
+ * @returns {Promise.<SharingSharedFolderMetadata, Error.<SharingUpdateFolderPolicyError>>}
+ */
+routes.sharingUpdateFolderPolicy = function (arg) {
+  return this.request('sharing/update_folder_policy', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Retrieves team events. Permission : Team Auditing.
+ * @function Dropbox#teamLogGetEvents
+ * @arg {TeamLogGetTeamEventsArg} arg - The request parameters.
+ * @returns {Promise.<TeamLogGetTeamEventsResult, Error.<TeamLogGetTeamEventsError>>}
+ */
+routes.teamLogGetEvents = function (arg) {
+  return this.request('team_log/get_events', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from get_events, use this to paginate
+ * through all events. Permission : Team Auditing.
+ * @function Dropbox#teamLogGetEventsContinue
+ * @arg {TeamLogGetTeamEventsContinueArg} arg - The request parameters.
+ * @returns {Promise.<TeamLogGetTeamEventsResult, Error.<TeamLogGetTeamEventsContinueError>>}
+ */
+routes.teamLogGetEventsContinue = function (arg) {
+  return this.request('team_log/get_events/continue', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Get information about a user's account.
+ * @function Dropbox#usersGetAccount
+ * @arg {UsersGetAccountArg} arg - The request parameters.
+ * @returns {Promise.<UsersBasicAccount, Error.<UsersGetAccountError>>}
+ */
+routes.usersGetAccount = function (arg) {
+  return this.request('users/get_account', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get information about multiple user accounts.  At most 300 accounts may be
+ * queried per request.
+ * @function Dropbox#usersGetAccountBatch
+ * @arg {UsersGetAccountBatchArg} arg - The request parameters.
+ * @returns {Promise.<Object, Error.<UsersGetAccountBatchError>>}
+ */
+routes.usersGetAccountBatch = function (arg) {
+  return this.request('users/get_account_batch', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get information about the current user's account.
+ * @function Dropbox#usersGetCurrentAccount
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<UsersFullAccount, Error.<void>>}
+ */
+routes.usersGetCurrentAccount = function (arg) {
+  return this.request('users/get_current_account', arg, 'user', 'api', 'rpc');
+};
+
+/**
+ * Get the space usage information for the current user's account.
+ * @function Dropbox#usersGetSpaceUsage
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<UsersSpaceUsage, Error.<void>>}
+ */
+routes.usersGetSpaceUsage = function (arg) {
+  return this.request('users/get_space_usage', arg, 'user', 'api', 'rpc');
+};
+
+var RPC = 'rpc';
+var UPLOAD = 'upload';
+var DOWNLOAD = 'download';
+
+function getSafeUnicode(c) {
+  var unicode = ('000' + c.charCodeAt(0).toString(16)).slice(-4);
+  return '\\u' + unicode;
+}
+
+/* global WorkerGlobalScope */
+function isWindowOrWorker() {
+  return typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope || typeof module === 'undefined';
+}
+
+function getBaseURL(host) {
+  return 'https://' + host + '.dropboxapi.com/2/';
+}
+
+// source https://www.dropboxforum.com/t5/API-support/HTTP-header-quot-Dropbox-API-Arg-quot-could-not-decode-input-as/m-p/173823/highlight/true#M6786
+function httpHeaderSafeJson(args) {
+  return JSON.stringify(args).replace(/[\u007f-\uffff]/g, getSafeUnicode);
+}
+
+var classCallCheck = function (instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+};
+
+var createClass = function () {
+  function defineProperties(target, props) {
+    for (var i = 0; i < props.length; i++) {
+      var descriptor = props[i];
+      descriptor.enumerable = descriptor.enumerable || false;
+      descriptor.configurable = true;
+      if ("value" in descriptor) descriptor.writable = true;
+      Object.defineProperty(target, descriptor.key, descriptor);
+    }
+  }
+
+  return function (Constructor, protoProps, staticProps) {
+    if (protoProps) defineProperties(Constructor.prototype, protoProps);
+    if (staticProps) defineProperties(Constructor, staticProps);
+    return Constructor;
+  };
+}();
+
+
+
+
+
+
+
+
+
+var inherits = function (subClass, superClass) {
+  if (typeof superClass !== "function" && superClass !== null) {
+    throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
+  }
+
+  subClass.prototype = Object.create(superClass && superClass.prototype, {
+    constructor: {
+      value: subClass,
+      enumerable: false,
+      writable: true,
+      configurable: true
+    }
+  });
+  if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
+};
+
+
+
+
+
+
+
+
+
+
+
+var possibleConstructorReturn = function (self, call) {
+  if (!self) {
+    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+  }
+
+  return call && (typeof call === "object" || typeof call === "function") ? call : self;
+};
+
+
+
+
+
+var slicedToArray = function () {
+  function sliceIterator(arr, i) {
+    var _arr = [];
+    var _n = true;
+    var _d = false;
+    var _e = undefined;
+
+    try {
+      for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
+        _arr.push(_s.value);
+
+        if (i && _arr.length === i) break;
+      }
+    } catch (err) {
+      _d = true;
+      _e = err;
+    } finally {
+      try {
+        if (!_n && _i["return"]) _i["return"]();
+      } finally {
+        if (_d) throw _e;
+      }
+    }
+
+    return _arr;
+  }
+
+  return function (arr, i) {
+    if (Array.isArray(arr)) {
+      return arr;
+    } else if (Symbol.iterator in Object(arr)) {
+      return sliceIterator(arr, i);
+    } else {
+      throw new TypeError("Invalid attempt to destructure non-iterable instance");
+    }
+  };
+}();
+
+function getDataFromConsumer(res) {
+  if (!res.ok) {
+    return res.text();
+  }
+
+  return isWindowOrWorker() ? res.blob() : res.buffer();
+}
+
+function responseHandler(res, data) {
+  if (!res.ok) {
+    // eslint-disable-next-line no-throw-literal
+    throw {
+      error: data,
+      response: res,
+      status: res.status
+    };
+  }
+
+  var result = JSON.parse(res.headers.get('dropbox-api-result'));
+
+  if (isWindowOrWorker()) {
+    result.fileBlob = data;
+  } else {
+    result.fileBinary = data;
+  }
+
+  return result;
+}
+
+function downloadRequest(path, args, auth, host, accessToken, options) {
+  if (auth !== 'user') {
+    throw new Error('Unexpected auth type: ' + auth);
+  }
+
+  var fetchOptions = {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + accessToken,
+      'Dropbox-API-Arg': httpHeaderSafeJson(args)
+    }
+  };
+
+  if (options) {
+    if (options.selectUser) {
+      fetchOptions.headers['Dropbox-API-Select-User'] = options.selectUser;
+    }
+    if (options.selectAdmin) {
+      fetchOptions.headers['Dropbox-API-Select-Admin'] = options.selectAdmin;
+    }
+  }
+
+  return fetch(getBaseURL(host) + path, fetchOptions).then(function (res) {
+    return getDataFromConsumer(res).then(function (data) {
+      return [res, data];
+    });
+  }).then(function (_ref) {
+    var _ref2 = slicedToArray(_ref, 2),
+        res = _ref2[0],
+        data = _ref2[1];
+
+    return responseHandler(res, data);
+  });
+}
+
+function parseBodyToType$1(res) {
+  var clone = res.clone();
+  return new Promise(function (resolve) {
+    res.json().then(function (data) {
+      return resolve(data);
+    }).catch(function () {
+      return clone.text().then(function (data) {
+        return resolve(data);
+      });
+    });
+  }).then(function (data) {
+    return [res, data];
+  });
+}
+
+function uploadRequest(path, args, auth, host, accessToken, options) {
+  if (auth !== 'user') {
+    throw new Error('Unexpected auth type: ' + auth);
+  }
+
+  var contents = args.contents;
+
+  delete args.contents;
+
+  var fetchOptions = {
+    body: contents,
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + accessToken,
+      'Content-Type': 'application/octet-stream',
+      'Dropbox-API-Arg': httpHeaderSafeJson(args)
+    }
+  };
+
+  if (options) {
+    if (options.selectUser) {
+      fetchOptions.headers['Dropbox-API-Select-User'] = options.selectUser;
+    }
+    if (options.selectAdmin) {
+      fetchOptions.headers['Dropbox-API-Select-Admin'] = options.selectAdmin;
+    }
+  }
+
+  return fetch(getBaseURL(host) + path, fetchOptions).then(function (res) {
+    return parseBodyToType$1(res);
+  }).then(function (_ref) {
+    var _ref2 = slicedToArray(_ref, 2),
+        res = _ref2[0],
+        data = _ref2[1];
+
+    // maintaining existing API for error codes not equal to 200 range
+    if (!res.ok) {
+      // eslint-disable-next-line no-throw-literal
+      throw {
+        error: data,
+        response: res,
+        status: res.status
+      };
+    }
+
+    return data;
+  });
+}
+
+function createCommonjsModule(fn, module) {
+	return module = { exports: {} }, fn(module, module.exports), module.exports;
+}
+
+var byteLength_1 = byteLength;
+var toByteArray_1 = toByteArray;
+var fromByteArray_1 = fromByteArray;
+
+var lookup = [];
+var revLookup = [];
+var Arr = typeof Uint8Array !== 'undefined' ? Uint8Array : Array;
+
+var code = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+for (var i = 0, len = code.length; i < len; ++i) {
+  lookup[i] = code[i];
+  revLookup[code.charCodeAt(i)] = i;
+}
+
+revLookup['-'.charCodeAt(0)] = 62;
+revLookup['_'.charCodeAt(0)] = 63;
+
+function placeHoldersCount (b64) {
+  var len = b64.length;
+  if (len % 4 > 0) {
+    throw new Error('Invalid string. Length must be a multiple of 4')
+  }
+
+  // the number of equal signs (place holders)
+  // if there are two placeholders, than the two characters before it
+  // represent one byte
+  // if there is only one, then the three characters before it represent 2 bytes
+  // this is just a cheap hack to not do indexOf twice
+  return b64[len - 2] === '=' ? 2 : b64[len - 1] === '=' ? 1 : 0
+}
+
+function byteLength (b64) {
+  // base64 is 4/3 + up to two characters of the original data
+  return (b64.length * 3 / 4) - placeHoldersCount(b64)
+}
+
+function toByteArray (b64) {
+  var i, l, tmp, placeHolders, arr;
+  var len = b64.length;
+  placeHolders = placeHoldersCount(b64);
+
+  arr = new Arr((len * 3 / 4) - placeHolders);
+
+  // if there are placeholders, only get up to the last complete 4 chars
+  l = placeHolders > 0 ? len - 4 : len;
+
+  var L = 0;
+
+  for (i = 0; i < l; i += 4) {
+    tmp = (revLookup[b64.charCodeAt(i)] << 18) | (revLookup[b64.charCodeAt(i + 1)] << 12) | (revLookup[b64.charCodeAt(i + 2)] << 6) | revLookup[b64.charCodeAt(i + 3)];
+    arr[L++] = (tmp >> 16) & 0xFF;
+    arr[L++] = (tmp >> 8) & 0xFF;
+    arr[L++] = tmp & 0xFF;
+  }
+
+  if (placeHolders === 2) {
+    tmp = (revLookup[b64.charCodeAt(i)] << 2) | (revLookup[b64.charCodeAt(i + 1)] >> 4);
+    arr[L++] = tmp & 0xFF;
+  } else if (placeHolders === 1) {
+    tmp = (revLookup[b64.charCodeAt(i)] << 10) | (revLookup[b64.charCodeAt(i + 1)] << 4) | (revLookup[b64.charCodeAt(i + 2)] >> 2);
+    arr[L++] = (tmp >> 8) & 0xFF;
+    arr[L++] = tmp & 0xFF;
+  }
+
+  return arr
+}
+
+function tripletToBase64 (num) {
+  return lookup[num >> 18 & 0x3F] + lookup[num >> 12 & 0x3F] + lookup[num >> 6 & 0x3F] + lookup[num & 0x3F]
+}
+
+function encodeChunk (uint8, start, end) {
+  var tmp;
+  var output = [];
+  for (var i = start; i < end; i += 3) {
+    tmp = (uint8[i] << 16) + (uint8[i + 1] << 8) + (uint8[i + 2]);
+    output.push(tripletToBase64(tmp));
+  }
+  return output.join('')
+}
+
+function fromByteArray (uint8) {
+  var tmp;
+  var len = uint8.length;
+  var extraBytes = len % 3; // if we have 1 byte left, pad 2 bytes
+  var output = '';
+  var parts = [];
+  var maxChunkLength = 16383; // must be multiple of 3
+
+  // go through the array every three bytes, we'll deal with trailing stuff later
+  for (var i = 0, len2 = len - extraBytes; i < len2; i += maxChunkLength) {
+    parts.push(encodeChunk(uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)));
+  }
+
+  // pad the end with zeros, but make sure to not forget the extra bytes
+  if (extraBytes === 1) {
+    tmp = uint8[len - 1];
+    output += lookup[tmp >> 2];
+    output += lookup[(tmp << 4) & 0x3F];
+    output += '==';
+  } else if (extraBytes === 2) {
+    tmp = (uint8[len - 2] << 8) + (uint8[len - 1]);
+    output += lookup[tmp >> 10];
+    output += lookup[(tmp >> 4) & 0x3F];
+    output += lookup[(tmp << 2) & 0x3F];
+    output += '=';
+  }
+
+  parts.push(output);
+
+  return parts.join('')
+}
+
+var base64Js = {
+	byteLength: byteLength_1,
+	toByteArray: toByteArray_1,
+	fromByteArray: fromByteArray_1
+};
+
+var read = function (buffer, offset, isLE, mLen, nBytes) {
+  var e, m;
+  var eLen = nBytes * 8 - mLen - 1;
+  var eMax = (1 << eLen) - 1;
+  var eBias = eMax >> 1;
+  var nBits = -7;
+  var i = isLE ? (nBytes - 1) : 0;
+  var d = isLE ? -1 : 1;
+  var s = buffer[offset + i];
+
+  i += d;
+
+  e = s & ((1 << (-nBits)) - 1);
+  s >>= (-nBits);
+  nBits += eLen;
+  for (; nBits > 0; e = e * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+
+  m = e & ((1 << (-nBits)) - 1);
+  e >>= (-nBits);
+  nBits += mLen;
+  for (; nBits > 0; m = m * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+
+  if (e === 0) {
+    e = 1 - eBias;
+  } else if (e === eMax) {
+    return m ? NaN : ((s ? -1 : 1) * Infinity)
+  } else {
+    m = m + Math.pow(2, mLen);
+    e = e - eBias;
+  }
+  return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
+};
+
+var write = function (buffer, value, offset, isLE, mLen, nBytes) {
+  var e, m, c;
+  var eLen = nBytes * 8 - mLen - 1;
+  var eMax = (1 << eLen) - 1;
+  var eBias = eMax >> 1;
+  var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0);
+  var i = isLE ? 0 : (nBytes - 1);
+  var d = isLE ? 1 : -1;
+  var s = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0;
+
+  value = Math.abs(value);
+
+  if (isNaN(value) || value === Infinity) {
+    m = isNaN(value) ? 1 : 0;
+    e = eMax;
+  } else {
+    e = Math.floor(Math.log(value) / Math.LN2);
+    if (value * (c = Math.pow(2, -e)) < 1) {
+      e--;
+      c *= 2;
+    }
+    if (e + eBias >= 1) {
+      value += rt / c;
+    } else {
+      value += rt * Math.pow(2, 1 - eBias);
+    }
+    if (value * c >= 2) {
+      e++;
+      c /= 2;
+    }
+
+    if (e + eBias >= eMax) {
+      m = 0;
+      e = eMax;
+    } else if (e + eBias >= 1) {
+      m = (value * c - 1) * Math.pow(2, mLen);
+      e = e + eBias;
+    } else {
+      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen);
+      e = 0;
+    }
+  }
+
+  for (; mLen >= 8; buffer[offset + i] = m & 0xff, i += d, m /= 256, mLen -= 8) {}
+
+  e = (e << mLen) | m;
+  eLen += mLen;
+  for (; eLen > 0; buffer[offset + i] = e & 0xff, i += d, e /= 256, eLen -= 8) {}
+
+  buffer[offset + i - d] |= s * 128;
+};
+
+var ieee754 = {
+	read: read,
+	write: write
+};
+
+var buffer = createCommonjsModule(function (module, exports) {
+/*!
+ * The buffer module from node.js, for the browser.
+ *
+ * @author   Feross Aboukhadijeh <https://feross.org>
+ * @license  MIT
+ */
+/* eslint-disable no-proto */
+
+'use strict';
+
+
+
+
+exports.Buffer = Buffer;
+exports.SlowBuffer = SlowBuffer;
+exports.INSPECT_MAX_BYTES = 50;
+
+var K_MAX_LENGTH = 0x7fffffff;
+exports.kMaxLength = K_MAX_LENGTH;
+
+/**
+ * If `Buffer.TYPED_ARRAY_SUPPORT`:
+ *   === true    Use Uint8Array implementation (fastest)
+ *   === false   Print warning and recommend using `buffer` v4.x which has an Object
+ *               implementation (most compatible, even IE6)
+ *
+ * Browsers that support typed arrays are IE 10+, Firefox 4+, Chrome 7+, Safari 5.1+,
+ * Opera 11.6+, iOS 4.2+.
+ *
+ * We report that the browser does not support typed arrays if the are not subclassable
+ * using __proto__. Firefox 4-29 lacks support for adding new properties to `Uint8Array`
+ * (See: https://bugzilla.mozilla.org/show_bug.cgi?id=695438). IE 10 lacks support
+ * for __proto__ and has a buggy typed array implementation.
+ */
+Buffer.TYPED_ARRAY_SUPPORT = typedArraySupport();
+
+if (!Buffer.TYPED_ARRAY_SUPPORT && typeof console !== 'undefined' &&
+    typeof console.error === 'function') {
+  console.error(
+    'This browser lacks typed array (Uint8Array) support which is required by ' +
+    '`buffer` v5.x. Use `buffer` v4.x if you require old browser support.'
+  );
+}
+
+function typedArraySupport () {
+  // Can typed array instances can be augmented?
+  try {
+    var arr = new Uint8Array(1);
+    arr.__proto__ = {__proto__: Uint8Array.prototype, foo: function () { return 42 }};
+    return arr.foo() === 42
+  } catch (e) {
+    return false
+  }
+}
+
+function createBuffer (length) {
+  if (length > K_MAX_LENGTH) {
+    throw new RangeError('Invalid typed array length')
+  }
+  // Return an augmented `Uint8Array` instance
+  var buf = new Uint8Array(length);
+  buf.__proto__ = Buffer.prototype;
+  return buf
+}
+
+/**
+ * The Buffer constructor returns instances of `Uint8Array` that have their
+ * prototype changed to `Buffer.prototype`. Furthermore, `Buffer` is a subclass of
+ * `Uint8Array`, so the returned instances will have all the node `Buffer` methods
+ * and the `Uint8Array` methods. Square bracket notation works as expected -- it
+ * returns a single octet.
+ *
+ * The `Uint8Array` prototype remains unmodified.
+ */
+
+function Buffer (arg, encodingOrOffset, length) {
+  // Common case.
+  if (typeof arg === 'number') {
+    if (typeof encodingOrOffset === 'string') {
+      throw new Error(
+        'If encoding is specified then the first argument must be a string'
+      )
+    }
+    return allocUnsafe(arg)
+  }
+  return from(arg, encodingOrOffset, length)
+}
+
+// Fix subarray() in ES2016. See: https://github.com/feross/buffer/pull/97
+if (typeof Symbol !== 'undefined' && Symbol.species &&
+    Buffer[Symbol.species] === Buffer) {
+  Object.defineProperty(Buffer, Symbol.species, {
+    value: null,
+    configurable: true,
+    enumerable: false,
+    writable: false
+  });
+}
+
+Buffer.poolSize = 8192; // not used by this implementation
+
+function from (value, encodingOrOffset, length) {
+  if (typeof value === 'number') {
+    throw new TypeError('"value" argument must not be a number')
+  }
+
+  if (isArrayBuffer(value)) {
+    return fromArrayBuffer(value, encodingOrOffset, length)
+  }
+
+  if (typeof value === 'string') {
+    return fromString(value, encodingOrOffset)
+  }
+
+  return fromObject(value)
+}
+
+/**
+ * Functionally equivalent to Buffer(arg, encoding) but throws a TypeError
+ * if value is a number.
+ * Buffer.from(str[, encoding])
+ * Buffer.from(array)
+ * Buffer.from(buffer)
+ * Buffer.from(arrayBuffer[, byteOffset[, length]])
+ **/
+Buffer.from = function (value, encodingOrOffset, length) {
+  return from(value, encodingOrOffset, length)
+};
+
+// Note: Change prototype *after* Buffer.from is defined to workaround Chrome bug:
+// https://github.com/feross/buffer/pull/148
+Buffer.prototype.__proto__ = Uint8Array.prototype;
+Buffer.__proto__ = Uint8Array;
+
+function assertSize (size) {
+  if (typeof size !== 'number') {
+    throw new TypeError('"size" argument must be a number')
+  } else if (size < 0) {
+    throw new RangeError('"size" argument must not be negative')
+  }
+}
+
+function alloc (size, fill, encoding) {
+  assertSize(size);
+  if (size <= 0) {
+    return createBuffer(size)
+  }
+  if (fill !== undefined) {
+    // Only pay attention to encoding if it's a string. This
+    // prevents accidentally sending in a number that would
+    // be interpretted as a start offset.
+    return typeof encoding === 'string'
+      ? createBuffer(size).fill(fill, encoding)
+      : createBuffer(size).fill(fill)
+  }
+  return createBuffer(size)
+}
+
+/**
+ * Creates a new filled Buffer instance.
+ * alloc(size[, fill[, encoding]])
+ **/
+Buffer.alloc = function (size, fill, encoding) {
+  return alloc(size, fill, encoding)
+};
+
+function allocUnsafe (size) {
+  assertSize(size);
+  return createBuffer(size < 0 ? 0 : checked(size) | 0)
+}
+
+/**
+ * Equivalent to Buffer(num), by default creates a non-zero-filled Buffer instance.
+ * */
+Buffer.allocUnsafe = function (size) {
+  return allocUnsafe(size)
+};
+/**
+ * Equivalent to SlowBuffer(num), by default creates a non-zero-filled Buffer instance.
+ */
+Buffer.allocUnsafeSlow = function (size) {
+  return allocUnsafe(size)
+};
+
+function fromString (string, encoding) {
+  if (typeof encoding !== 'string' || encoding === '') {
+    encoding = 'utf8';
+  }
+
+  if (!Buffer.isEncoding(encoding)) {
+    throw new TypeError('"encoding" must be a valid string encoding')
+  }
+
+  var length = byteLength(string, encoding) | 0;
+  var buf = createBuffer(length);
+
+  var actual = buf.write(string, encoding);
+
+  if (actual !== length) {
+    // Writing a hex string, for example, that contains invalid characters will
+    // cause everything after the first invalid character to be ignored. (e.g.
+    // 'abxxcd' will be treated as 'ab')
+    buf = buf.slice(0, actual);
+  }
+
+  return buf
+}
+
+function fromArrayLike (array) {
+  var length = array.length < 0 ? 0 : checked(array.length) | 0;
+  var buf = createBuffer(length);
+  for (var i = 0; i < length; i += 1) {
+    buf[i] = array[i] & 255;
+  }
+  return buf
+}
+
+function fromArrayBuffer (array, byteOffset, length) {
+  if (byteOffset < 0 || array.byteLength < byteOffset) {
+    throw new RangeError('\'offset\' is out of bounds')
+  }
+
+  if (array.byteLength < byteOffset + (length || 0)) {
+    throw new RangeError('\'length\' is out of bounds')
+  }
+
+  var buf;
+  if (byteOffset === undefined && length === undefined) {
+    buf = new Uint8Array(array);
+  } else if (length === undefined) {
+    buf = new Uint8Array(array, byteOffset);
+  } else {
+    buf = new Uint8Array(array, byteOffset, length);
+  }
+
+  // Return an augmented `Uint8Array` instance
+  buf.__proto__ = Buffer.prototype;
+  return buf
+}
+
+function fromObject (obj) {
+  if (Buffer.isBuffer(obj)) {
+    var len = checked(obj.length) | 0;
+    var buf = createBuffer(len);
+
+    if (buf.length === 0) {
+      return buf
+    }
+
+    obj.copy(buf, 0, 0, len);
+    return buf
+  }
+
+  if (obj) {
+    if (isArrayBufferView(obj) || 'length' in obj) {
+      if (typeof obj.length !== 'number' || numberIsNaN(obj.length)) {
+        return createBuffer(0)
+      }
+      return fromArrayLike(obj)
+    }
+
+    if (obj.type === 'Buffer' && Array.isArray(obj.data)) {
+      return fromArrayLike(obj.data)
+    }
+  }
+
+  throw new TypeError('First argument must be a string, Buffer, ArrayBuffer, Array, or array-like object.')
+}
+
+function checked (length) {
+  // Note: cannot use `length < K_MAX_LENGTH` here because that fails when
+  // length is NaN (which is otherwise coerced to zero.)
+  if (length >= K_MAX_LENGTH) {
+    throw new RangeError('Attempt to allocate Buffer larger than maximum ' +
+                         'size: 0x' + K_MAX_LENGTH.toString(16) + ' bytes')
+  }
+  return length | 0
+}
+
+function SlowBuffer (length) {
+  if (+length != length) { // eslint-disable-line eqeqeq
+    length = 0;
+  }
+  return Buffer.alloc(+length)
+}
+
+Buffer.isBuffer = function isBuffer (b) {
+  return b != null && b._isBuffer === true
+};
+
+Buffer.compare = function compare (a, b) {
+  if (!Buffer.isBuffer(a) || !Buffer.isBuffer(b)) {
+    throw new TypeError('Arguments must be Buffers')
+  }
+
+  if (a === b) return 0
+
+  var x = a.length;
+  var y = b.length;
+
+  for (var i = 0, len = Math.min(x, y); i < len; ++i) {
+    if (a[i] !== b[i]) {
+      x = a[i];
+      y = b[i];
+      break
+    }
+  }
+
+  if (x < y) return -1
+  if (y < x) return 1
+  return 0
+};
+
+Buffer.isEncoding = function isEncoding (encoding) {
+  switch (String(encoding).toLowerCase()) {
+    case 'hex':
+    case 'utf8':
+    case 'utf-8':
+    case 'ascii':
+    case 'latin1':
+    case 'binary':
+    case 'base64':
+    case 'ucs2':
+    case 'ucs-2':
+    case 'utf16le':
+    case 'utf-16le':
+      return true
+    default:
+      return false
+  }
+};
+
+Buffer.concat = function concat (list, length) {
+  if (!Array.isArray(list)) {
+    throw new TypeError('"list" argument must be an Array of Buffers')
+  }
+
+  if (list.length === 0) {
+    return Buffer.alloc(0)
+  }
+
+  var i;
+  if (length === undefined) {
+    length = 0;
+    for (i = 0; i < list.length; ++i) {
+      length += list[i].length;
+    }
+  }
+
+  var buffer = Buffer.allocUnsafe(length);
+  var pos = 0;
+  for (i = 0; i < list.length; ++i) {
+    var buf = list[i];
+    if (!Buffer.isBuffer(buf)) {
+      throw new TypeError('"list" argument must be an Array of Buffers')
+    }
+    buf.copy(buffer, pos);
+    pos += buf.length;
+  }
+  return buffer
+};
+
+function byteLength (string, encoding) {
+  if (Buffer.isBuffer(string)) {
+    return string.length
+  }
+  if (isArrayBufferView(string) || isArrayBuffer(string)) {
+    return string.byteLength
+  }
+  if (typeof string !== 'string') {
+    string = '' + string;
+  }
+
+  var len = string.length;
+  if (len === 0) return 0
+
+  // Use a for loop to avoid recursion
+  var loweredCase = false;
+  for (;;) {
+    switch (encoding) {
+      case 'ascii':
+      case 'latin1':
+      case 'binary':
+        return len
+      case 'utf8':
+      case 'utf-8':
+      case undefined:
+        return utf8ToBytes(string).length
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return len * 2
+      case 'hex':
+        return len >>> 1
+      case 'base64':
+        return base64ToBytes(string).length
+      default:
+        if (loweredCase) return utf8ToBytes(string).length // assume utf8
+        encoding = ('' + encoding).toLowerCase();
+        loweredCase = true;
+    }
+  }
+}
+Buffer.byteLength = byteLength;
+
+function slowToString (encoding, start, end) {
+  var loweredCase = false;
+
+  // No need to verify that "this.length <= MAX_UINT32" since it's a read-only
+  // property of a typed array.
+
+  // This behaves neither like String nor Uint8Array in that we set start/end
+  // to their upper/lower bounds if the value passed is out of range.
+  // undefined is handled specially as per ECMA-262 6th Edition,
+  // Section 13.3.3.7 Runtime Semantics: KeyedBindingInitialization.
+  if (start === undefined || start < 0) {
+    start = 0;
+  }
+  // Return early if start > this.length. Done here to prevent potential uint32
+  // coercion fail below.
+  if (start > this.length) {
+    return ''
+  }
+
+  if (end === undefined || end > this.length) {
+    end = this.length;
+  }
+
+  if (end <= 0) {
+    return ''
+  }
+
+  // Force coersion to uint32. This will also coerce falsey/NaN values to 0.
+  end >>>= 0;
+  start >>>= 0;
+
+  if (end <= start) {
+    return ''
+  }
+
+  if (!encoding) encoding = 'utf8';
+
+  while (true) {
+    switch (encoding) {
+      case 'hex':
+        return hexSlice(this, start, end)
+
+      case 'utf8':
+      case 'utf-8':
+        return utf8Slice(this, start, end)
+
+      case 'ascii':
+        return asciiSlice(this, start, end)
+
+      case 'latin1':
+      case 'binary':
+        return latin1Slice(this, start, end)
+
+      case 'base64':
+        return base64Slice(this, start, end)
+
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return utf16leSlice(this, start, end)
+
+      default:
+        if (loweredCase) throw new TypeError('Unknown encoding: ' + encoding)
+        encoding = (encoding + '').toLowerCase();
+        loweredCase = true;
+    }
+  }
+}
+
+// This property is used by `Buffer.isBuffer` (and the `is-buffer` npm package)
+// to detect a Buffer instance. It's not possible to use `instanceof Buffer`
+// reliably in a browserify context because there could be multiple different
+// copies of the 'buffer' package in use. This method works even for Buffer
+// instances that were created from another copy of the `buffer` package.
+// See: https://github.com/feross/buffer/issues/154
+Buffer.prototype._isBuffer = true;
+
+function swap (b, n, m) {
+  var i = b[n];
+  b[n] = b[m];
+  b[m] = i;
+}
+
+Buffer.prototype.swap16 = function swap16 () {
+  var len = this.length;
+  if (len % 2 !== 0) {
+    throw new RangeError('Buffer size must be a multiple of 16-bits')
+  }
+  for (var i = 0; i < len; i += 2) {
+    swap(this, i, i + 1);
+  }
+  return this
+};
+
+Buffer.prototype.swap32 = function swap32 () {
+  var len = this.length;
+  if (len % 4 !== 0) {
+    throw new RangeError('Buffer size must be a multiple of 32-bits')
+  }
+  for (var i = 0; i < len; i += 4) {
+    swap(this, i, i + 3);
+    swap(this, i + 1, i + 2);
+  }
+  return this
+};
+
+Buffer.prototype.swap64 = function swap64 () {
+  var len = this.length;
+  if (len % 8 !== 0) {
+    throw new RangeError('Buffer size must be a multiple of 64-bits')
+  }
+  for (var i = 0; i < len; i += 8) {
+    swap(this, i, i + 7);
+    swap(this, i + 1, i + 6);
+    swap(this, i + 2, i + 5);
+    swap(this, i + 3, i + 4);
+  }
+  return this
+};
+
+Buffer.prototype.toString = function toString () {
+  var length = this.length;
+  if (length === 0) return ''
+  if (arguments.length === 0) return utf8Slice(this, 0, length)
+  return slowToString.apply(this, arguments)
+};
+
+Buffer.prototype.equals = function equals (b) {
+  if (!Buffer.isBuffer(b)) throw new TypeError('Argument must be a Buffer')
+  if (this === b) return true
+  return Buffer.compare(this, b) === 0
+};
+
+Buffer.prototype.inspect = function inspect () {
+  var str = '';
+  var max = exports.INSPECT_MAX_BYTES;
+  if (this.length > 0) {
+    str = this.toString('hex', 0, max).match(/.{2}/g).join(' ');
+    if (this.length > max) str += ' ... ';
+  }
+  return '<Buffer ' + str + '>'
+};
+
+Buffer.prototype.compare = function compare (target, start, end, thisStart, thisEnd) {
+  if (!Buffer.isBuffer(target)) {
+    throw new TypeError('Argument must be a Buffer')
+  }
+
+  if (start === undefined) {
+    start = 0;
+  }
+  if (end === undefined) {
+    end = target ? target.length : 0;
+  }
+  if (thisStart === undefined) {
+    thisStart = 0;
+  }
+  if (thisEnd === undefined) {
+    thisEnd = this.length;
+  }
+
+  if (start < 0 || end > target.length || thisStart < 0 || thisEnd > this.length) {
+    throw new RangeError('out of range index')
+  }
+
+  if (thisStart >= thisEnd && start >= end) {
+    return 0
+  }
+  if (thisStart >= thisEnd) {
+    return -1
+  }
+  if (start >= end) {
+    return 1
+  }
+
+  start >>>= 0;
+  end >>>= 0;
+  thisStart >>>= 0;
+  thisEnd >>>= 0;
+
+  if (this === target) return 0
+
+  var x = thisEnd - thisStart;
+  var y = end - start;
+  var len = Math.min(x, y);
+
+  var thisCopy = this.slice(thisStart, thisEnd);
+  var targetCopy = target.slice(start, end);
+
+  for (var i = 0; i < len; ++i) {
+    if (thisCopy[i] !== targetCopy[i]) {
+      x = thisCopy[i];
+      y = targetCopy[i];
+      break
+    }
+  }
+
+  if (x < y) return -1
+  if (y < x) return 1
+  return 0
+};
+
+// Finds either the first index of `val` in `buffer` at offset >= `byteOffset`,
+// OR the last index of `val` in `buffer` at offset <= `byteOffset`.
+//
+// Arguments:
+// - buffer - a Buffer to search
+// - val - a string, Buffer, or number
+// - byteOffset - an index into `buffer`; will be clamped to an int32
+// - encoding - an optional encoding, relevant is val is a string
+// - dir - true for indexOf, false for lastIndexOf
+function bidirectionalIndexOf (buffer, val, byteOffset, encoding, dir) {
+  // Empty buffer means no match
+  if (buffer.length === 0) return -1
+
+  // Normalize byteOffset
+  if (typeof byteOffset === 'string') {
+    encoding = byteOffset;
+    byteOffset = 0;
+  } else if (byteOffset > 0x7fffffff) {
+    byteOffset = 0x7fffffff;
+  } else if (byteOffset < -0x80000000) {
+    byteOffset = -0x80000000;
+  }
+  byteOffset = +byteOffset;  // Coerce to Number.
+  if (numberIsNaN(byteOffset)) {
+    // byteOffset: it it's undefined, null, NaN, "foo", etc, search whole buffer
+    byteOffset = dir ? 0 : (buffer.length - 1);
+  }
+
+  // Normalize byteOffset: negative offsets start from the end of the buffer
+  if (byteOffset < 0) byteOffset = buffer.length + byteOffset;
+  if (byteOffset >= buffer.length) {
+    if (dir) return -1
+    else byteOffset = buffer.length - 1;
+  } else if (byteOffset < 0) {
+    if (dir) byteOffset = 0;
+    else return -1
+  }
+
+  // Normalize val
+  if (typeof val === 'string') {
+    val = Buffer.from(val, encoding);
+  }
+
+  // Finally, search either indexOf (if dir is true) or lastIndexOf
+  if (Buffer.isBuffer(val)) {
+    // Special case: looking for empty string/buffer always fails
+    if (val.length === 0) {
+      return -1
+    }
+    return arrayIndexOf(buffer, val, byteOffset, encoding, dir)
+  } else if (typeof val === 'number') {
+    val = val & 0xFF; // Search for a byte value [0-255]
+    if (typeof Uint8Array.prototype.indexOf === 'function') {
+      if (dir) {
+        return Uint8Array.prototype.indexOf.call(buffer, val, byteOffset)
+      } else {
+        return Uint8Array.prototype.lastIndexOf.call(buffer, val, byteOffset)
+      }
+    }
+    return arrayIndexOf(buffer, [ val ], byteOffset, encoding, dir)
+  }
+
+  throw new TypeError('val must be string, number or Buffer')
+}
+
+function arrayIndexOf (arr, val, byteOffset, encoding, dir) {
+  var indexSize = 1;
+  var arrLength = arr.length;
+  var valLength = val.length;
+
+  if (encoding !== undefined) {
+    encoding = String(encoding).toLowerCase();
+    if (encoding === 'ucs2' || encoding === 'ucs-2' ||
+        encoding === 'utf16le' || encoding === 'utf-16le') {
+      if (arr.length < 2 || val.length < 2) {
+        return -1
+      }
+      indexSize = 2;
+      arrLength /= 2;
+      valLength /= 2;
+      byteOffset /= 2;
+    }
+  }
+
+  function read (buf, i) {
+    if (indexSize === 1) {
+      return buf[i]
+    } else {
+      return buf.readUInt16BE(i * indexSize)
+    }
+  }
+
+  var i;
+  if (dir) {
+    var foundIndex = -1;
+    for (i = byteOffset; i < arrLength; i++) {
+      if (read(arr, i) === read(val, foundIndex === -1 ? 0 : i - foundIndex)) {
+        if (foundIndex === -1) foundIndex = i;
+        if (i - foundIndex + 1 === valLength) return foundIndex * indexSize
+      } else {
+        if (foundIndex !== -1) i -= i - foundIndex;
+        foundIndex = -1;
+      }
+    }
+  } else {
+    if (byteOffset + valLength > arrLength) byteOffset = arrLength - valLength;
+    for (i = byteOffset; i >= 0; i--) {
+      var found = true;
+      for (var j = 0; j < valLength; j++) {
+        if (read(arr, i + j) !== read(val, j)) {
+          found = false;
+          break
+        }
+      }
+      if (found) return i
+    }
+  }
+
+  return -1
+}
+
+Buffer.prototype.includes = function includes (val, byteOffset, encoding) {
+  return this.indexOf(val, byteOffset, encoding) !== -1
+};
+
+Buffer.prototype.indexOf = function indexOf (val, byteOffset, encoding) {
+  return bidirectionalIndexOf(this, val, byteOffset, encoding, true)
+};
+
+Buffer.prototype.lastIndexOf = function lastIndexOf (val, byteOffset, encoding) {
+  return bidirectionalIndexOf(this, val, byteOffset, encoding, false)
+};
+
+function hexWrite (buf, string, offset, length) {
+  offset = Number(offset) || 0;
+  var remaining = buf.length - offset;
+  if (!length) {
+    length = remaining;
+  } else {
+    length = Number(length);
+    if (length > remaining) {
+      length = remaining;
+    }
+  }
+
+  // must be an even number of digits
+  var strLen = string.length;
+  if (strLen % 2 !== 0) throw new TypeError('Invalid hex string')
+
+  if (length > strLen / 2) {
+    length = strLen / 2;
+  }
+  for (var i = 0; i < length; ++i) {
+    var parsed = parseInt(string.substr(i * 2, 2), 16);
+    if (numberIsNaN(parsed)) return i
+    buf[offset + i] = parsed;
+  }
+  return i
+}
+
+function utf8Write (buf, string, offset, length) {
+  return blitBuffer(utf8ToBytes(string, buf.length - offset), buf, offset, length)
+}
+
+function asciiWrite (buf, string, offset, length) {
+  return blitBuffer(asciiToBytes(string), buf, offset, length)
+}
+
+function latin1Write (buf, string, offset, length) {
+  return asciiWrite(buf, string, offset, length)
+}
+
+function base64Write (buf, string, offset, length) {
+  return blitBuffer(base64ToBytes(string), buf, offset, length)
+}
+
+function ucs2Write (buf, string, offset, length) {
+  return blitBuffer(utf16leToBytes(string, buf.length - offset), buf, offset, length)
+}
+
+Buffer.prototype.write = function write (string, offset, length, encoding) {
+  // Buffer#write(string)
+  if (offset === undefined) {
+    encoding = 'utf8';
+    length = this.length;
+    offset = 0;
+  // Buffer#write(string, encoding)
+  } else if (length === undefined && typeof offset === 'string') {
+    encoding = offset;
+    length = this.length;
+    offset = 0;
+  // Buffer#write(string, offset[, length][, encoding])
+  } else if (isFinite(offset)) {
+    offset = offset >>> 0;
+    if (isFinite(length)) {
+      length = length >>> 0;
+      if (encoding === undefined) encoding = 'utf8';
+    } else {
+      encoding = length;
+      length = undefined;
+    }
+  } else {
+    throw new Error(
+      'Buffer.write(string, encoding, offset[, length]) is no longer supported'
+    )
+  }
+
+  var remaining = this.length - offset;
+  if (length === undefined || length > remaining) length = remaining;
+
+  if ((string.length > 0 && (length < 0 || offset < 0)) || offset > this.length) {
+    throw new RangeError('Attempt to write outside buffer bounds')
+  }
+
+  if (!encoding) encoding = 'utf8';
+
+  var loweredCase = false;
+  for (;;) {
+    switch (encoding) {
+      case 'hex':
+        return hexWrite(this, string, offset, length)
+
+      case 'utf8':
+      case 'utf-8':
+        return utf8Write(this, string, offset, length)
+
+      case 'ascii':
+        return asciiWrite(this, string, offset, length)
+
+      case 'latin1':
+      case 'binary':
+        return latin1Write(this, string, offset, length)
+
+      case 'base64':
+        // Warning: maxLength not taken into account in base64Write
+        return base64Write(this, string, offset, length)
+
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return ucs2Write(this, string, offset, length)
+
+      default:
+        if (loweredCase) throw new TypeError('Unknown encoding: ' + encoding)
+        encoding = ('' + encoding).toLowerCase();
+        loweredCase = true;
+    }
+  }
+};
+
+Buffer.prototype.toJSON = function toJSON () {
+  return {
+    type: 'Buffer',
+    data: Array.prototype.slice.call(this._arr || this, 0)
+  }
+};
+
+function base64Slice (buf, start, end) {
+  if (start === 0 && end === buf.length) {
+    return base64Js.fromByteArray(buf)
+  } else {
+    return base64Js.fromByteArray(buf.slice(start, end))
+  }
+}
+
+function utf8Slice (buf, start, end) {
+  end = Math.min(buf.length, end);
+  var res = [];
+
+  var i = start;
+  while (i < end) {
+    var firstByte = buf[i];
+    var codePoint = null;
+    var bytesPerSequence = (firstByte > 0xEF) ? 4
+      : (firstByte > 0xDF) ? 3
+      : (firstByte > 0xBF) ? 2
+      : 1;
+
+    if (i + bytesPerSequence <= end) {
+      var secondByte, thirdByte, fourthByte, tempCodePoint;
+
+      switch (bytesPerSequence) {
+        case 1:
+          if (firstByte < 0x80) {
+            codePoint = firstByte;
+          }
+          break
+        case 2:
+          secondByte = buf[i + 1];
+          if ((secondByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0x1F) << 0x6 | (secondByte & 0x3F);
+            if (tempCodePoint > 0x7F) {
+              codePoint = tempCodePoint;
+            }
+          }
+          break
+        case 3:
+          secondByte = buf[i + 1];
+          thirdByte = buf[i + 2];
+          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0xF) << 0xC | (secondByte & 0x3F) << 0x6 | (thirdByte & 0x3F);
+            if (tempCodePoint > 0x7FF && (tempCodePoint < 0xD800 || tempCodePoint > 0xDFFF)) {
+              codePoint = tempCodePoint;
+            }
+          }
+          break
+        case 4:
+          secondByte = buf[i + 1];
+          thirdByte = buf[i + 2];
+          fourthByte = buf[i + 3];
+          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80 && (fourthByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0xF) << 0x12 | (secondByte & 0x3F) << 0xC | (thirdByte & 0x3F) << 0x6 | (fourthByte & 0x3F);
+            if (tempCodePoint > 0xFFFF && tempCodePoint < 0x110000) {
+              codePoint = tempCodePoint;
+            }
+          }
+      }
+    }
+
+    if (codePoint === null) {
+      // we did not generate a valid codePoint so insert a
+      // replacement char (U+FFFD) and advance only 1 byte
+      codePoint = 0xFFFD;
+      bytesPerSequence = 1;
+    } else if (codePoint > 0xFFFF) {
+      // encode to utf16 (surrogate pair dance)
+      codePoint -= 0x10000;
+      res.push(codePoint >>> 10 & 0x3FF | 0xD800);
+      codePoint = 0xDC00 | codePoint & 0x3FF;
+    }
+
+    res.push(codePoint);
+    i += bytesPerSequence;
+  }
+
+  return decodeCodePointsArray(res)
+}
+
+// Based on http://stackoverflow.com/a/22747272/680742, the browser with
+// the lowest limit is Chrome, with 0x10000 args.
+// We go 1 magnitude less, for safety
+var MAX_ARGUMENTS_LENGTH = 0x1000;
+
+function decodeCodePointsArray (codePoints) {
+  var len = codePoints.length;
+  if (len <= MAX_ARGUMENTS_LENGTH) {
+    return String.fromCharCode.apply(String, codePoints) // avoid extra slice()
+  }
+
+  // Decode in chunks to avoid "call stack size exceeded".
+  var res = '';
+  var i = 0;
+  while (i < len) {
+    res += String.fromCharCode.apply(
+      String,
+      codePoints.slice(i, i += MAX_ARGUMENTS_LENGTH)
+    );
+  }
+  return res
+}
+
+function asciiSlice (buf, start, end) {
+  var ret = '';
+  end = Math.min(buf.length, end);
+
+  for (var i = start; i < end; ++i) {
+    ret += String.fromCharCode(buf[i] & 0x7F);
+  }
+  return ret
+}
+
+function latin1Slice (buf, start, end) {
+  var ret = '';
+  end = Math.min(buf.length, end);
+
+  for (var i = start; i < end; ++i) {
+    ret += String.fromCharCode(buf[i]);
+  }
+  return ret
+}
+
+function hexSlice (buf, start, end) {
+  var len = buf.length;
+
+  if (!start || start < 0) start = 0;
+  if (!end || end < 0 || end > len) end = len;
+
+  var out = '';
+  for (var i = start; i < end; ++i) {
+    out += toHex(buf[i]);
+  }
+  return out
+}
+
+function utf16leSlice (buf, start, end) {
+  var bytes = buf.slice(start, end);
+  var res = '';
+  for (var i = 0; i < bytes.length; i += 2) {
+    res += String.fromCharCode(bytes[i] + (bytes[i + 1] * 256));
+  }
+  return res
+}
+
+Buffer.prototype.slice = function slice (start, end) {
+  var len = this.length;
+  start = ~~start;
+  end = end === undefined ? len : ~~end;
+
+  if (start < 0) {
+    start += len;
+    if (start < 0) start = 0;
+  } else if (start > len) {
+    start = len;
+  }
+
+  if (end < 0) {
+    end += len;
+    if (end < 0) end = 0;
+  } else if (end > len) {
+    end = len;
+  }
+
+  if (end < start) end = start;
+
+  var newBuf = this.subarray(start, end);
+  // Return an augmented `Uint8Array` instance
+  newBuf.__proto__ = Buffer.prototype;
+  return newBuf
+};
+
+/*
+ * Need to make sure that buffer isn't trying to write out of bounds.
+ */
+function checkOffset (offset, ext, length) {
+  if ((offset % 1) !== 0 || offset < 0) throw new RangeError('offset is not uint')
+  if (offset + ext > length) throw new RangeError('Trying to access beyond buffer length')
+}
+
+Buffer.prototype.readUIntLE = function readUIntLE (offset, byteLength, noAssert) {
+  offset = offset >>> 0;
+  byteLength = byteLength >>> 0;
+  if (!noAssert) checkOffset(offset, byteLength, this.length);
+
+  var val = this[offset];
+  var mul = 1;
+  var i = 0;
+  while (++i < byteLength && (mul *= 0x100)) {
+    val += this[offset + i] * mul;
+  }
+
+  return val
+};
+
+Buffer.prototype.readUIntBE = function readUIntBE (offset, byteLength, noAssert) {
+  offset = offset >>> 0;
+  byteLength = byteLength >>> 0;
+  if (!noAssert) {
+    checkOffset(offset, byteLength, this.length);
+  }
+
+  var val = this[offset + --byteLength];
+  var mul = 1;
+  while (byteLength > 0 && (mul *= 0x100)) {
+    val += this[offset + --byteLength] * mul;
+  }
+
+  return val
+};
+
+Buffer.prototype.readUInt8 = function readUInt8 (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 1, this.length);
+  return this[offset]
+};
+
+Buffer.prototype.readUInt16LE = function readUInt16LE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 2, this.length);
+  return this[offset] | (this[offset + 1] << 8)
+};
+
+Buffer.prototype.readUInt16BE = function readUInt16BE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 2, this.length);
+  return (this[offset] << 8) | this[offset + 1]
+};
+
+Buffer.prototype.readUInt32LE = function readUInt32LE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 4, this.length);
+
+  return ((this[offset]) |
+      (this[offset + 1] << 8) |
+      (this[offset + 2] << 16)) +
+      (this[offset + 3] * 0x1000000)
+};
+
+Buffer.prototype.readUInt32BE = function readUInt32BE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 4, this.length);
+
+  return (this[offset] * 0x1000000) +
+    ((this[offset + 1] << 16) |
+    (this[offset + 2] << 8) |
+    this[offset + 3])
+};
+
+Buffer.prototype.readIntLE = function readIntLE (offset, byteLength, noAssert) {
+  offset = offset >>> 0;
+  byteLength = byteLength >>> 0;
+  if (!noAssert) checkOffset(offset, byteLength, this.length);
+
+  var val = this[offset];
+  var mul = 1;
+  var i = 0;
+  while (++i < byteLength && (mul *= 0x100)) {
+    val += this[offset + i] * mul;
+  }
+  mul *= 0x80;
+
+  if (val >= mul) val -= Math.pow(2, 8 * byteLength);
+
+  return val
+};
+
+Buffer.prototype.readIntBE = function readIntBE (offset, byteLength, noAssert) {
+  offset = offset >>> 0;
+  byteLength = byteLength >>> 0;
+  if (!noAssert) checkOffset(offset, byteLength, this.length);
+
+  var i = byteLength;
+  var mul = 1;
+  var val = this[offset + --i];
+  while (i > 0 && (mul *= 0x100)) {
+    val += this[offset + --i] * mul;
+  }
+  mul *= 0x80;
+
+  if (val >= mul) val -= Math.pow(2, 8 * byteLength);
+
+  return val
+};
+
+Buffer.prototype.readInt8 = function readInt8 (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 1, this.length);
+  if (!(this[offset] & 0x80)) return (this[offset])
+  return ((0xff - this[offset] + 1) * -1)
+};
+
+Buffer.prototype.readInt16LE = function readInt16LE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 2, this.length);
+  var val = this[offset] | (this[offset + 1] << 8);
+  return (val & 0x8000) ? val | 0xFFFF0000 : val
+};
+
+Buffer.prototype.readInt16BE = function readInt16BE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 2, this.length);
+  var val = this[offset + 1] | (this[offset] << 8);
+  return (val & 0x8000) ? val | 0xFFFF0000 : val
+};
+
+Buffer.prototype.readInt32LE = function readInt32LE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 4, this.length);
+
+  return (this[offset]) |
+    (this[offset + 1] << 8) |
+    (this[offset + 2] << 16) |
+    (this[offset + 3] << 24)
+};
+
+Buffer.prototype.readInt32BE = function readInt32BE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 4, this.length);
+
+  return (this[offset] << 24) |
+    (this[offset + 1] << 16) |
+    (this[offset + 2] << 8) |
+    (this[offset + 3])
+};
+
+Buffer.prototype.readFloatLE = function readFloatLE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 4, this.length);
+  return ieee754.read(this, offset, true, 23, 4)
+};
+
+Buffer.prototype.readFloatBE = function readFloatBE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 4, this.length);
+  return ieee754.read(this, offset, false, 23, 4)
+};
+
+Buffer.prototype.readDoubleLE = function readDoubleLE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 8, this.length);
+  return ieee754.read(this, offset, true, 52, 8)
+};
+
+Buffer.prototype.readDoubleBE = function readDoubleBE (offset, noAssert) {
+  offset = offset >>> 0;
+  if (!noAssert) checkOffset(offset, 8, this.length);
+  return ieee754.read(this, offset, false, 52, 8)
+};
+
+function checkInt (buf, value, offset, ext, max, min) {
+  if (!Buffer.isBuffer(buf)) throw new TypeError('"buffer" argument must be a Buffer instance')
+  if (value > max || value < min) throw new RangeError('"value" argument is out of bounds')
+  if (offset + ext > buf.length) throw new RangeError('Index out of range')
+}
+
+Buffer.prototype.writeUIntLE = function writeUIntLE (value, offset, byteLength, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  byteLength = byteLength >>> 0;
+  if (!noAssert) {
+    var maxBytes = Math.pow(2, 8 * byteLength) - 1;
+    checkInt(this, value, offset, byteLength, maxBytes, 0);
+  }
+
+  var mul = 1;
+  var i = 0;
+  this[offset] = value & 0xFF;
+  while (++i < byteLength && (mul *= 0x100)) {
+    this[offset + i] = (value / mul) & 0xFF;
+  }
+
+  return offset + byteLength
+};
+
+Buffer.prototype.writeUIntBE = function writeUIntBE (value, offset, byteLength, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  byteLength = byteLength >>> 0;
+  if (!noAssert) {
+    var maxBytes = Math.pow(2, 8 * byteLength) - 1;
+    checkInt(this, value, offset, byteLength, maxBytes, 0);
+  }
+
+  var i = byteLength - 1;
+  var mul = 1;
+  this[offset + i] = value & 0xFF;
+  while (--i >= 0 && (mul *= 0x100)) {
+    this[offset + i] = (value / mul) & 0xFF;
+  }
+
+  return offset + byteLength
+};
+
+Buffer.prototype.writeUInt8 = function writeUInt8 (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 1, 0xff, 0);
+  this[offset] = (value & 0xff);
+  return offset + 1
+};
+
+Buffer.prototype.writeUInt16LE = function writeUInt16LE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0);
+  this[offset] = (value & 0xff);
+  this[offset + 1] = (value >>> 8);
+  return offset + 2
+};
+
+Buffer.prototype.writeUInt16BE = function writeUInt16BE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0);
+  this[offset] = (value >>> 8);
+  this[offset + 1] = (value & 0xff);
+  return offset + 2
+};
+
+Buffer.prototype.writeUInt32LE = function writeUInt32LE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0);
+  this[offset + 3] = (value >>> 24);
+  this[offset + 2] = (value >>> 16);
+  this[offset + 1] = (value >>> 8);
+  this[offset] = (value & 0xff);
+  return offset + 4
+};
+
+Buffer.prototype.writeUInt32BE = function writeUInt32BE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0);
+  this[offset] = (value >>> 24);
+  this[offset + 1] = (value >>> 16);
+  this[offset + 2] = (value >>> 8);
+  this[offset + 3] = (value & 0xff);
+  return offset + 4
+};
+
+Buffer.prototype.writeIntLE = function writeIntLE (value, offset, byteLength, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) {
+    var limit = Math.pow(2, (8 * byteLength) - 1);
+
+    checkInt(this, value, offset, byteLength, limit - 1, -limit);
+  }
+
+  var i = 0;
+  var mul = 1;
+  var sub = 0;
+  this[offset] = value & 0xFF;
+  while (++i < byteLength && (mul *= 0x100)) {
+    if (value < 0 && sub === 0 && this[offset + i - 1] !== 0) {
+      sub = 1;
+    }
+    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF;
+  }
+
+  return offset + byteLength
+};
+
+Buffer.prototype.writeIntBE = function writeIntBE (value, offset, byteLength, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) {
+    var limit = Math.pow(2, (8 * byteLength) - 1);
+
+    checkInt(this, value, offset, byteLength, limit - 1, -limit);
+  }
+
+  var i = byteLength - 1;
+  var mul = 1;
+  var sub = 0;
+  this[offset + i] = value & 0xFF;
+  while (--i >= 0 && (mul *= 0x100)) {
+    if (value < 0 && sub === 0 && this[offset + i + 1] !== 0) {
+      sub = 1;
+    }
+    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF;
+  }
+
+  return offset + byteLength
+};
+
+Buffer.prototype.writeInt8 = function writeInt8 (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 1, 0x7f, -0x80);
+  if (value < 0) value = 0xff + value + 1;
+  this[offset] = (value & 0xff);
+  return offset + 1
+};
+
+Buffer.prototype.writeInt16LE = function writeInt16LE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000);
+  this[offset] = (value & 0xff);
+  this[offset + 1] = (value >>> 8);
+  return offset + 2
+};
+
+Buffer.prototype.writeInt16BE = function writeInt16BE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000);
+  this[offset] = (value >>> 8);
+  this[offset + 1] = (value & 0xff);
+  return offset + 2
+};
+
+Buffer.prototype.writeInt32LE = function writeInt32LE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000);
+  this[offset] = (value & 0xff);
+  this[offset + 1] = (value >>> 8);
+  this[offset + 2] = (value >>> 16);
+  this[offset + 3] = (value >>> 24);
+  return offset + 4
+};
+
+Buffer.prototype.writeInt32BE = function writeInt32BE (value, offset, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000);
+  if (value < 0) value = 0xffffffff + value + 1;
+  this[offset] = (value >>> 24);
+  this[offset + 1] = (value >>> 16);
+  this[offset + 2] = (value >>> 8);
+  this[offset + 3] = (value & 0xff);
+  return offset + 4
+};
+
+function checkIEEE754 (buf, value, offset, ext, max, min) {
+  if (offset + ext > buf.length) throw new RangeError('Index out of range')
+  if (offset < 0) throw new RangeError('Index out of range')
+}
+
+function writeFloat (buf, value, offset, littleEndian, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) {
+    checkIEEE754(buf, value, offset, 4, 3.4028234663852886e+38, -3.4028234663852886e+38);
+  }
+  ieee754.write(buf, value, offset, littleEndian, 23, 4);
+  return offset + 4
+}
+
+Buffer.prototype.writeFloatLE = function writeFloatLE (value, offset, noAssert) {
+  return writeFloat(this, value, offset, true, noAssert)
+};
+
+Buffer.prototype.writeFloatBE = function writeFloatBE (value, offset, noAssert) {
+  return writeFloat(this, value, offset, false, noAssert)
+};
+
+function writeDouble (buf, value, offset, littleEndian, noAssert) {
+  value = +value;
+  offset = offset >>> 0;
+  if (!noAssert) {
+    checkIEEE754(buf, value, offset, 8, 1.7976931348623157E+308, -1.7976931348623157E+308);
+  }
+  ieee754.write(buf, value, offset, littleEndian, 52, 8);
+  return offset + 8
+}
+
+Buffer.prototype.writeDoubleLE = function writeDoubleLE (value, offset, noAssert) {
+  return writeDouble(this, value, offset, true, noAssert)
+};
+
+Buffer.prototype.writeDoubleBE = function writeDoubleBE (value, offset, noAssert) {
+  return writeDouble(this, value, offset, false, noAssert)
+};
+
+// copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
+Buffer.prototype.copy = function copy (target, targetStart, start, end) {
+  if (!start) start = 0;
+  if (!end && end !== 0) end = this.length;
+  if (targetStart >= target.length) targetStart = target.length;
+  if (!targetStart) targetStart = 0;
+  if (end > 0 && end < start) end = start;
+
+  // Copy 0 bytes; we're done
+  if (end === start) return 0
+  if (target.length === 0 || this.length === 0) return 0
+
+  // Fatal error conditions
+  if (targetStart < 0) {
+    throw new RangeError('targetStart out of bounds')
+  }
+  if (start < 0 || start >= this.length) throw new RangeError('sourceStart out of bounds')
+  if (end < 0) throw new RangeError('sourceEnd out of bounds')
+
+  // Are we oob?
+  if (end > this.length) end = this.length;
+  if (target.length - targetStart < end - start) {
+    end = target.length - targetStart + start;
+  }
+
+  var len = end - start;
+  var i;
+
+  if (this === target && start < targetStart && targetStart < end) {
+    // descending copy from end
+    for (i = len - 1; i >= 0; --i) {
+      target[i + targetStart] = this[i + start];
+    }
+  } else if (len < 1000) {
+    // ascending copy from start
+    for (i = 0; i < len; ++i) {
+      target[i + targetStart] = this[i + start];
+    }
+  } else {
+    Uint8Array.prototype.set.call(
+      target,
+      this.subarray(start, start + len),
+      targetStart
+    );
+  }
+
+  return len
+};
+
+// Usage:
+//    buffer.fill(number[, offset[, end]])
+//    buffer.fill(buffer[, offset[, end]])
+//    buffer.fill(string[, offset[, end]][, encoding])
+Buffer.prototype.fill = function fill (val, start, end, encoding) {
+  // Handle string cases:
+  if (typeof val === 'string') {
+    if (typeof start === 'string') {
+      encoding = start;
+      start = 0;
+      end = this.length;
+    } else if (typeof end === 'string') {
+      encoding = end;
+      end = this.length;
+    }
+    if (val.length === 1) {
+      var code = val.charCodeAt(0);
+      if (code < 256) {
+        val = code;
+      }
+    }
+    if (encoding !== undefined && typeof encoding !== 'string') {
+      throw new TypeError('encoding must be a string')
+    }
+    if (typeof encoding === 'string' && !Buffer.isEncoding(encoding)) {
+      throw new TypeError('Unknown encoding: ' + encoding)
+    }
+  } else if (typeof val === 'number') {
+    val = val & 255;
+  }
+
+  // Invalid ranges are not set to a default, so can range check early.
+  if (start < 0 || this.length < start || this.length < end) {
+    throw new RangeError('Out of range index')
+  }
+
+  if (end <= start) {
+    return this
+  }
+
+  start = start >>> 0;
+  end = end === undefined ? this.length : end >>> 0;
+
+  if (!val) val = 0;
+
+  var i;
+  if (typeof val === 'number') {
+    for (i = start; i < end; ++i) {
+      this[i] = val;
+    }
+  } else {
+    var bytes = Buffer.isBuffer(val)
+      ? val
+      : new Buffer(val, encoding);
+    var len = bytes.length;
+    for (i = 0; i < end - start; ++i) {
+      this[i + start] = bytes[i % len];
+    }
+  }
+
+  return this
+};
+
+// HELPER FUNCTIONS
+// ================
+
+var INVALID_BASE64_RE = /[^+/0-9A-Za-z-_]/g;
+
+function base64clean (str) {
+  // Node strips out invalid characters like \n and \t from the string, base64-js does not
+  str = str.trim().replace(INVALID_BASE64_RE, '');
+  // Node converts strings with length < 2 to ''
+  if (str.length < 2) return ''
+  // Node allows for non-padded base64 strings (missing trailing ===), base64-js does not
+  while (str.length % 4 !== 0) {
+    str = str + '=';
+  }
+  return str
+}
+
+function toHex (n) {
+  if (n < 16) return '0' + n.toString(16)
+  return n.toString(16)
+}
+
+function utf8ToBytes (string, units) {
+  units = units || Infinity;
+  var codePoint;
+  var length = string.length;
+  var leadSurrogate = null;
+  var bytes = [];
+
+  for (var i = 0; i < length; ++i) {
+    codePoint = string.charCodeAt(i);
+
+    // is surrogate component
+    if (codePoint > 0xD7FF && codePoint < 0xE000) {
+      // last char was a lead
+      if (!leadSurrogate) {
+        // no lead yet
+        if (codePoint > 0xDBFF) {
+          // unexpected trail
+          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD);
+          continue
+        } else if (i + 1 === length) {
+          // unpaired lead
+          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD);
+          continue
+        }
+
+        // valid lead
+        leadSurrogate = codePoint;
+
+        continue
+      }
+
+      // 2 leads in a row
+      if (codePoint < 0xDC00) {
+        if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD);
+        leadSurrogate = codePoint;
+        continue
+      }
+
+      // valid surrogate pair
+      codePoint = (leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00) + 0x10000;
+    } else if (leadSurrogate) {
+      // valid bmp char, but last char was a lead
+      if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD);
+    }
+
+    leadSurrogate = null;
+
+    // encode utf8
+    if (codePoint < 0x80) {
+      if ((units -= 1) < 0) break
+      bytes.push(codePoint);
+    } else if (codePoint < 0x800) {
+      if ((units -= 2) < 0) break
+      bytes.push(
+        codePoint >> 0x6 | 0xC0,
+        codePoint & 0x3F | 0x80
+      );
+    } else if (codePoint < 0x10000) {
+      if ((units -= 3) < 0) break
+      bytes.push(
+        codePoint >> 0xC | 0xE0,
+        codePoint >> 0x6 & 0x3F | 0x80,
+        codePoint & 0x3F | 0x80
+      );
+    } else if (codePoint < 0x110000) {
+      if ((units -= 4) < 0) break
+      bytes.push(
+        codePoint >> 0x12 | 0xF0,
+        codePoint >> 0xC & 0x3F | 0x80,
+        codePoint >> 0x6 & 0x3F | 0x80,
+        codePoint & 0x3F | 0x80
+      );
+    } else {
+      throw new Error('Invalid code point')
+    }
+  }
+
+  return bytes
+}
+
+function asciiToBytes (str) {
+  var byteArray = [];
+  for (var i = 0; i < str.length; ++i) {
+    // Node's code seems to be doing this and not & 0x7F..
+    byteArray.push(str.charCodeAt(i) & 0xFF);
+  }
+  return byteArray
+}
+
+function utf16leToBytes (str, units) {
+  var c, hi, lo;
+  var byteArray = [];
+  for (var i = 0; i < str.length; ++i) {
+    if ((units -= 2) < 0) break
+
+    c = str.charCodeAt(i);
+    hi = c >> 8;
+    lo = c % 256;
+    byteArray.push(lo);
+    byteArray.push(hi);
+  }
+
+  return byteArray
+}
+
+function base64ToBytes (str) {
+  return base64Js.toByteArray(base64clean(str))
+}
+
+function blitBuffer (src, dst, offset, length) {
+  for (var i = 0; i < length; ++i) {
+    if ((i + offset >= dst.length) || (i >= src.length)) break
+    dst[i + offset] = src[i];
+  }
+  return i
+}
+
+// ArrayBuffers from another context (i.e. an iframe) do not pass the `instanceof` check
+// but they should be treated as valid. See: https://github.com/feross/buffer/issues/166
+function isArrayBuffer (obj) {
+  return obj instanceof ArrayBuffer ||
+    (obj != null && obj.constructor != null && obj.constructor.name === 'ArrayBuffer' &&
+      typeof obj.byteLength === 'number')
+}
+
+// Node 0.10 supports `ArrayBuffer` but lacks `ArrayBuffer.isView`
+function isArrayBufferView (obj) {
+  return (typeof ArrayBuffer.isView === 'function') && ArrayBuffer.isView(obj)
+}
+
+function numberIsNaN (obj) {
+  return obj !== obj // eslint-disable-line no-self-compare
+}
+});
+
+var buffer_1 = buffer.Buffer;
+
+function parseBodyToType$2(res) {
+  var clone = res.clone();
+  return new Promise(function (resolve) {
+    res.json().then(function (data) {
+      return resolve(data);
+    }).catch(function () {
+      return clone.text().then(function (data) {
+        return resolve(data);
+      });
+    });
+  }).then(function (data) {
+    return [res, data];
+  });
+}
+
+function rpcRequest(path, body, auth, host, accessToken, options) {
+  var fetchOptions = {
+    method: 'POST',
+    body: body ? JSON.stringify(body) : null
+  };
+  var headers = {};
+  if (body) {
+    headers['Content-Type'] = 'application/json';
+  }
+  var authHeader = '';
+
+  switch (auth) {
+    case 'app':
+      if (!options.clientId || !options.clientSecret) {
+        throw new Error('A client id and secret is required for this function');
+      }
+      authHeader = new buffer_1(options.clientId + ':' + options.clientSecret).toString('base64');
+      headers.Authorization = 'Basic ' + authHeader;
+      break;
+    case 'team':
+    case 'user':
+      headers.Authorization = 'Bearer ' + accessToken;
+      break;
+    case 'noauth':
+      break;
+    default:
+      throw new Error('Unhandled auth type: ' + auth);
+  }
+
+  if (options) {
+    if (options.selectUser) {
+      headers['Dropbox-API-Select-User'] = options.selectUser;
+    }
+    if (options.selectAdmin) {
+      headers['Dropbox-API-Select-Admin'] = options.selectAdmin;
+    }
+  }
+
+  fetchOptions.headers = headers;
+  return fetch(getBaseURL(host) + path, fetchOptions).then(function (res) {
+    return parseBodyToType$2(res);
+  }).then(function (_ref) {
+    var _ref2 = slicedToArray(_ref, 2),
+        res = _ref2[0],
+        data = _ref2[1];
+
+    // maintaining existing API for error codes not equal to 200 range
+    if (!res.ok) {
+      // eslint-disable-next-line no-throw-literal
+      throw {
+        error: data,
+        response: res,
+        status: res.status
+      };
+    }
+
+    return data;
+  });
+}
+
+/* eslint-disable */
+// Polyfill object.assign for legacy browsers
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
+if (typeof Object.assign !== 'function') {
+  (function () {
+    Object.assign = function (target) {
+      'use strict';
+
+      var output;
+      var index;
+      var source;
+      var nextKey;
+      if (target === undefined || target === null) {
+        throw new TypeError('Cannot convert undefined or null to object');
+      }
+
+      output = Object(target);
+      for (index = 1; index < arguments.length; index++) {
+        source = arguments[index];
+        if (source !== undefined && source !== null) {
+          for (nextKey in source) {
+            if (source.hasOwnProperty(nextKey)) {
+              output[nextKey] = source[nextKey];
+            }
+          }
+        }
+      }
+      return output;
+    };
+  })();
+}
+
+// Polyfill Array.includes for legacy browsers
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/includes
+// https://tc39.github.io/ecma262/#sec-array.prototype.includes
+if (!Array.prototype.includes) {
+  Object.defineProperty(Array.prototype, 'includes', {
+    value: function value(searchElement, fromIndex) {
+
+      if (this == null) {
+        throw new TypeError('"this" is null or not defined');
+      }
+
+      // 1. Let O be ? ToObject(this value).
+      var o = Object(this);
+
+      // 2. Let len be ? ToLength(? Get(O, "length")).
+      var len = o.length >>> 0;
+
+      // 3. If len is 0, return false.
+      if (len === 0) {
+        return false;
+      }
+
+      // 4. Let n be ? ToInteger(fromIndex).
+      //    (If fromIndex is undefined, this step produces the value 0.)
+      var n = fromIndex | 0;
+
+      // 5. If n ≥ 0, then
+      //  a. Let k be n.
+      // 6. Else n < 0,
+      //  a. Let k be len + n.
+      //  b. If k < 0, let k be 0.
+      var k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
+
+      function sameValueZero(x, y) {
+        return x === y || typeof x === 'number' && typeof y === 'number' && isNaN(x) && isNaN(y);
+      }
+
+      // 7. Repeat, while k < len
+      while (k < len) {
+        // a. Let elementK be the result of ? Get(O, ! ToString(k)).
+        // b. If SameValueZero(searchElement, elementK) is true, return true.
+        if (sameValueZero(o[k], searchElement)) {
+          return true;
+        }
+        // c. Increase k by 1.
+        k++;
+      }
+
+      // 8. Return false
+      return false;
+    }
+  });
+}
+/* eslint-enable */
+
+/**
+ * @private
+ * @class DropboxBase
+ * @classdesc The main Dropbox SDK class. This contains the methods that are
+ * shared between Dropbox and DropboxTeam classes. It is marked as private so
+ * that it doesn't show up in the docs because it is never used directly.
+ * @arg {Object} options
+ * @arg {String} [options.accessToken] - An access token for making authenticated
+ * requests.
+ * @arg {String} [options.clientId] - The client id for your app. Used to create
+ * authentication URL.
+ * @arg {String} [options.clientSecret] - The client secret for your app.
+ * @arg {Number} [options.selectUser] - User that the team access token would like
+ * to act as.
+ * @arg {String} [options.selectAdmin] - Team admin that the team access token would like
+ * to act as.
+ */
+
+function parseBodyToType(res) {
+  var clone = res.clone();
+  return new Promise(function (resolve) {
+    res.json().then(function (data) {
+      return resolve(data);
+    }).catch(function () {
+      return clone.text().then(function (data) {
+        return resolve(data);
+      });
+    });
+  }).then(function (data) {
+    return [res, data];
+  });
+}
+
+var DropboxBase = function () {
+  function DropboxBase(options) {
+    classCallCheck(this, DropboxBase);
+
+    options = options || {};
+    this.accessToken = options.accessToken;
+    this.clientId = options.clientId;
+    this.clientSecret = options.clientSecret;
+    this.selectUser = options.selectUser;
+    this.selectAdmin = options.selectAdmin;
+  }
+
+  /**
+   * Set the access token used to authenticate requests to the API.
+   * @arg {String} accessToken - An access token
+   * @returns {undefined}
+   */
+
+
+  createClass(DropboxBase, [{
+    key: 'setAccessToken',
+    value: function setAccessToken(accessToken) {
+      this.accessToken = accessToken;
+    }
+
+    /**
+     * Get the access token
+     * @returns {String} Access token
+     */
+
+  }, {
+    key: 'getAccessToken',
+    value: function getAccessToken() {
+      return this.accessToken;
+    }
+
+    /**
+     * Set the client id, which is used to help gain an access token.
+     * @arg {String} clientId - Your apps client id
+     * @returns {undefined}
+     */
+
+  }, {
+    key: 'setClientId',
+    value: function setClientId(clientId) {
+      this.clientId = clientId;
+    }
+
+    /**
+     * Get the client id
+     * @returns {String} Client id
+     */
+
+  }, {
+    key: 'getClientId',
+    value: function getClientId() {
+      return this.clientId;
+    }
+
+    /**
+     * Set the client secret
+     * @arg {String} clientId - Your apps client secret
+     * @returns {undefined}
+     */
+
+  }, {
+    key: 'setClientSecret',
+    value: function setClientSecret(clientSecret) {
+      this.clientSecret = clientSecret;
+    }
+
+    /**
+     * Get the client secret
+     * @returns {String} Client secret
+     */
+
+  }, {
+    key: 'getClientSecret',
+    value: function getClientSecret() {
+      return this.clientSecret;
+    }
+
+    /**
+     * Get a URL that can be used to authenticate users for the Dropbox API.
+     * @arg {String} redirectUri - A URL to redirect the user to after
+     * authenticating. This must be added to your app through the admin interface.
+     * @arg {String} [state] - State that will be returned in the redirect URL to help
+     * prevent cross site scripting attacks.
+     * @arg {String} [authType] - auth type, defaults to 'token', other option is 'code'
+     * @returns {String} Url to send user to for Dropbox API authentication
+     */
+
+  }, {
+    key: 'getAuthenticationUrl',
+    value: function getAuthenticationUrl(redirectUri, state) {
+      var authType = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'token';
+
+      var clientId = this.getClientId();
+      var baseUrl = 'https://www.dropbox.com/oauth2/authorize';
+
+      if (!clientId) {
+        throw new Error('A client id is required. You can set the client id using .setClientId().');
+      }
+      if (authType !== 'code' && !redirectUri) {
+        throw new Error('A redirect uri is required.');
+      }
+      if (!['code', 'token'].includes(authType)) {
+        throw new Error('Authorization type must be code or token');
+      }
+
+      var authUrl = void 0;
+      if (authType === 'code') {
+        authUrl = baseUrl + '?response_type=code&client_id=' + clientId;
+      } else {
+        authUrl = baseUrl + '?response_type=token&client_id=' + clientId;
+      }
+
+      if (redirectUri) {
+        authUrl += '&redirect_uri=' + redirectUri;
+      }
+      if (state) {
+        authUrl += '&state=' + state;
+      }
+      return authUrl;
+    }
+
+    /**
+     * Get an OAuth2 access token from an OAuth2 Code.
+     * @arg {String} redirectUri - A URL to redirect the user to after
+     * authenticating. This must be added to your app through the admin interface.
+     * @arg {String} code - An OAuth2 code.
+    */
+
+  }, {
+    key: 'getAccessTokenFromCode',
+    value: function getAccessTokenFromCode(redirectUri, code) {
+      var clientId = this.getClientId();
+      var clientSecret = this.getClientSecret();
+
+      if (!clientId) {
+        throw new Error('A client id is required. You can set the client id using .setClientId().');
+      }
+      if (!clientSecret) {
+        throw new Error('A client secret is required. You can set the client id using .setClientSecret().');
+      }
+      var path = 'https://api.dropboxapi.com/oauth2/token?code=' + code + '&grant_type=authorization_code&redirect_uri=' + redirectUri + '&client_id=' + clientId + '&client_secret=' + clientSecret;
+
+      var fetchOptions = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      };
+
+      return fetch(path, fetchOptions).then(function (res) {
+        return parseBodyToType(res);
+      }).then(function (_ref) {
+        var _ref2 = slicedToArray(_ref, 2),
+            res = _ref2[0],
+            data = _ref2[1];
+
+        // maintaining existing API for error codes not equal to 200 range
+        if (!res.ok) {
+          // eslint-disable-next-line no-throw-literal
+          throw {
+            error: data,
+            response: res,
+            status: res.status
+          };
+        }
+        return data.access_token;
+      });
+    }
+
+    /**
+     * Called when the authentication succeed
+     * @callback successCallback
+     * @param {string} access_token The application's access token
+     */
+
+    /**
+     * Called when the authentication failed.
+     * @callback errorCallback
+     */
+
+    /**
+     * An authentication process that works with cordova applications.
+     * @param {successCallback} successCallback
+     * @param {errorCallback} errorCallback
+     */
+
+  }, {
+    key: 'authenticateWithCordova',
+    value: function authenticateWithCordova(successCallback, errorCallback) {
+      var redirectUrl = 'https://www.dropbox.com/1/oauth2/redirect_receiver';
+      var url = this.getAuthenticationUrl(redirectUrl);
+
+      var removed = false;
+      var browser = window.open(url, '_blank');
+
+      function onLoadError() {
+        // Try to avoid a browser crash on browser.close().
+        window.setTimeout(function () {
+          browser.close();
+        }, 10);
+        errorCallback();
+      }
+
+      function onLoadStop(event) {
+        var errorLabel = '&error=';
+        var errorIndex = event.url.indexOf(errorLabel);
+
+        if (errorIndex > -1) {
+          // Try to avoid a browser crash on browser.close().
+          window.setTimeout(function () {
+            browser.close();
+          }, 10);
+          errorCallback();
+        } else {
+          var tokenLabel = '#access_token=';
+          var tokenIndex = event.url.indexOf(tokenLabel);
+          var tokenTypeIndex = event.url.indexOf('&token_type=');
+          if (tokenIndex > -1) {
+            tokenIndex += tokenLabel.length;
+            // Try to avoid a browser crash on browser.close().
+            window.setTimeout(function () {
+              browser.close();
+            }, 10);
+
+            var accessToken = event.url.substring(tokenIndex, tokenTypeIndex);
+            successCallback(accessToken);
+          }
+        }
+      }
+
+      function onExit() {
+        if (removed) {
+          return;
+        }
+        browser.removeEventListener('loaderror', onLoadError);
+        browser.removeEventListener('loadstop', onLoadStop);
+        browser.removeEventListener('exit', onExit);
+        removed = true;
+      }
+
+      browser.addEventListener('loaderror', onLoadError);
+      browser.addEventListener('loadstop', onLoadStop);
+      browser.addEventListener('exit', onExit);
+    }
+  }, {
+    key: 'request',
+    value: function request(path, args, auth, host, style) {
+      var request = null;
+      switch (style) {
+        case RPC:
+          request = this.getRpcRequest();
+          break;
+        case DOWNLOAD:
+          request = this.getDownloadRequest();
+          break;
+        case UPLOAD:
+          request = this.getUploadRequest();
+          break;
+        default:
+          throw new Error('Invalid request style: ' + style);
+      }
+      var options = {
+        selectUser: this.selectUser,
+        selectAdmin: this.selectAdmin,
+        clientId: this.getClientId(),
+        clientSecret: this.getClientSecret()
+      };
+      return request(path, args, auth, host, this.getAccessToken(), options);
+    }
+  }, {
+    key: 'setRpcRequest',
+    value: function setRpcRequest(newRpcRequest) {
+      this.rpcRequest = newRpcRequest;
+    }
+  }, {
+    key: 'getRpcRequest',
+    value: function getRpcRequest() {
+      if (this.rpcRequest === undefined) {
+        this.rpcRequest = rpcRequest;
+      }
+      return this.rpcRequest;
+    }
+  }, {
+    key: 'setDownloadRequest',
+    value: function setDownloadRequest(newDownloadRequest) {
+      this.downloadRequest = newDownloadRequest;
+    }
+  }, {
+    key: 'getDownloadRequest',
+    value: function getDownloadRequest() {
+      if (this.downloadRequest === undefined) {
+        this.downloadRequest = downloadRequest;
+      }
+      return this.downloadRequest;
+    }
+  }, {
+    key: 'setUploadRequest',
+    value: function setUploadRequest(newUploadRequest) {
+      this.uploadRequest = newUploadRequest;
+    }
+  }, {
+    key: 'getUploadRequest',
+    value: function getUploadRequest() {
+      if (this.uploadRequest === undefined) {
+        this.uploadRequest = uploadRequest;
+      }
+      return this.uploadRequest;
+    }
+  }]);
+  return DropboxBase;
+}();
+
+/**
+ * @class Dropbox
+ * @extends DropboxBase
+ * @classdesc The Dropbox SDK class that provides methods to read, write and
+ * create files or folders in a user's Dropbox.
+ * @arg {Object} options
+ * @arg {String} [options.accessToken] - An access token for making authenticated
+ * requests.
+ * @arg {String} [options.clientId] - The client id for your app. Used to create
+ * authentication URL.
+ * @arg {String} [options.selectUser] - Select user is only used by DropboxTeam.
+ * It specifies which user the team access token should be acting as.
+ */
+var Dropbox = function (_DropboxBase) {
+  inherits(Dropbox, _DropboxBase);
+
+  function Dropbox(options) {
+    classCallCheck(this, Dropbox);
+
+    var _this = possibleConstructorReturn(this, (Dropbox.__proto__ || Object.getPrototypeOf(Dropbox)).call(this, options));
+
+    Object.assign(_this, routes);
+    return _this;
+  }
+
+  createClass(Dropbox, [{
+    key: 'filesGetSharedLinkFile',
+    value: function filesGetSharedLinkFile(arg) {
+      return this.request('sharing/get_shared_link_file', arg, 'api', 'download');
+    }
+  }]);
+  return Dropbox;
+}(DropboxBase);
+
+// Auto-generated by Stone, do not modify.
+var routes$1 = {};
+
+/**
+ * List all device sessions of a team's member.
+ * @function DropboxTeam#teamDevicesListMemberDevices
+ * @arg {TeamListMemberDevicesArg} arg - The request parameters.
+ * @returns {Promise.<TeamListMemberDevicesResult, Error.<TeamListMemberDevicesError>>}
+ */
+routes$1.teamDevicesListMemberDevices = function (arg) {
+  return this.request('team/devices/list_member_devices', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * List all device sessions of a team.
+ * @function DropboxTeam#teamDevicesListMembersDevices
+ * @arg {TeamListMembersDevicesArg} arg - The request parameters.
+ * @returns {Promise.<TeamListMembersDevicesResult, Error.<TeamListMembersDevicesError>>}
+ */
+routes$1.teamDevicesListMembersDevices = function (arg) {
+  return this.request('team/devices/list_members_devices', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * List all device sessions of a team.
+ * @function DropboxTeam#teamDevicesListTeamDevices
+ * @deprecated
+ * @arg {TeamListTeamDevicesArg} arg - The request parameters.
+ * @returns {Promise.<TeamListTeamDevicesResult, Error.<TeamListTeamDevicesError>>}
+ */
+routes$1.teamDevicesListTeamDevices = function (arg) {
+  return this.request('team/devices/list_team_devices', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Revoke a device session of a team's member.
+ * @function DropboxTeam#teamDevicesRevokeDeviceSession
+ * @arg {TeamRevokeDeviceSessionArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<TeamRevokeDeviceSessionError>>}
+ */
+routes$1.teamDevicesRevokeDeviceSession = function (arg) {
+  return this.request('team/devices/revoke_device_session', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Revoke a list of device sessions of team members.
+ * @function DropboxTeam#teamDevicesRevokeDeviceSessionBatch
+ * @arg {TeamRevokeDeviceSessionBatchArg} arg - The request parameters.
+ * @returns {Promise.<TeamRevokeDeviceSessionBatchResult, Error.<TeamRevokeDeviceSessionBatchError>>}
+ */
+routes$1.teamDevicesRevokeDeviceSessionBatch = function (arg) {
+  return this.request('team/devices/revoke_device_session_batch', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Get the values for one or more featues. This route allows you to check your
+ * account's capability for what feature you can access or what value you have
+ * for certain features. Permission : Team information.
+ * @function DropboxTeam#teamFeaturesGetValues
+ * @arg {TeamFeaturesGetValuesBatchArg} arg - The request parameters.
+ * @returns {Promise.<TeamFeaturesGetValuesBatchResult, Error.<TeamFeaturesGetValuesBatchError>>}
+ */
+routes$1.teamFeaturesGetValues = function (arg) {
+  return this.request('team/features/get_values', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Retrieves information about a team.
+ * @function DropboxTeam#teamGetInfo
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<TeamTeamGetInfoResult, Error.<void>>}
+ */
+routes$1.teamGetInfo = function (arg) {
+  return this.request('team/get_info', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Creates a new, empty group, with a requested name. Permission : Team member
+ * management.
+ * @function DropboxTeam#teamGroupsCreate
+ * @arg {TeamGroupCreateArg} arg - The request parameters.
+ * @returns {Promise.<TeamGroupFullInfo, Error.<TeamGroupCreateError>>}
+ */
+routes$1.teamGroupsCreate = function (arg) {
+  return this.request('team/groups/create', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Deletes a group. The group is deleted immediately. However the revoking of
+ * group-owned resources may take additional time. Use the groups/job_status/get
+ * to determine whether this process has completed. Permission : Team member
+ * management.
+ * @function DropboxTeam#teamGroupsDelete
+ * @arg {TeamGroupSelector} arg - The request parameters.
+ * @returns {Promise.<AsyncLaunchEmptyResult, Error.<TeamGroupDeleteError>>}
+ */
+routes$1.teamGroupsDelete = function (arg) {
+  return this.request('team/groups/delete', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Retrieves information about one or more groups. Note that the optional field
+ * GroupFullInfo.members is not returned for system-managed groups. Permission :
+ * Team Information.
+ * @function DropboxTeam#teamGroupsGetInfo
+ * @arg {TeamGroupsSelector} arg - The request parameters.
+ * @returns {Promise.<Object, Error.<TeamGroupsGetInfoError>>}
+ */
+routes$1.teamGroupsGetInfo = function (arg) {
+  return this.request('team/groups/get_info', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once an async_job_id is returned from groups/delete, groups/members/add , or
+ * groups/members/remove use this method to poll the status of granting/revoking
+ * group members' access to group-owned resources. Permission : Team member
+ * management.
+ * @function DropboxTeam#teamGroupsJobStatusGet
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<AsyncPollEmptyResult, Error.<TeamGroupsPollError>>}
+ */
+routes$1.teamGroupsJobStatusGet = function (arg) {
+  return this.request('team/groups/job_status/get', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Lists groups on a team. Permission : Team Information.
+ * @function DropboxTeam#teamGroupsList
+ * @arg {TeamGroupsListArg} arg - The request parameters.
+ * @returns {Promise.<TeamGroupsListResult, Error.<void>>}
+ */
+routes$1.teamGroupsList = function (arg) {
+  return this.request('team/groups/list', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from groups/list, use this to paginate
+ * through all groups. Permission : Team Information.
+ * @function DropboxTeam#teamGroupsListContinue
+ * @arg {TeamGroupsListContinueArg} arg - The request parameters.
+ * @returns {Promise.<TeamGroupsListResult, Error.<TeamGroupsListContinueError>>}
+ */
+routes$1.teamGroupsListContinue = function (arg) {
+  return this.request('team/groups/list/continue', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Adds members to a group. The members are added immediately. However the
+ * granting of group-owned resources may take additional time. Use the
+ * groups/job_status/get to determine whether this process has completed.
+ * Permission : Team member management.
+ * @function DropboxTeam#teamGroupsMembersAdd
+ * @arg {TeamGroupMembersAddArg} arg - The request parameters.
+ * @returns {Promise.<TeamGroupMembersChangeResult, Error.<TeamGroupMembersAddError>>}
+ */
+routes$1.teamGroupsMembersAdd = function (arg) {
+  return this.request('team/groups/members/add', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Lists members of a group. Permission : Team Information.
+ * @function DropboxTeam#teamGroupsMembersList
+ * @arg {TeamGroupsMembersListArg} arg - The request parameters.
+ * @returns {Promise.<TeamGroupsMembersListResult, Error.<TeamGroupSelectorError>>}
+ */
+routes$1.teamGroupsMembersList = function (arg) {
+  return this.request('team/groups/members/list', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from groups/members/list, use this to
+ * paginate through all members of the group. Permission : Team information.
+ * @function DropboxTeam#teamGroupsMembersListContinue
+ * @arg {TeamGroupsMembersListContinueArg} arg - The request parameters.
+ * @returns {Promise.<TeamGroupsMembersListResult, Error.<TeamGroupsMembersListContinueError>>}
+ */
+routes$1.teamGroupsMembersListContinue = function (arg) {
+  return this.request('team/groups/members/list/continue', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Removes members from a group. The members are removed immediately. However
+ * the revoking of group-owned resources may take additional time. Use the
+ * groups/job_status/get to determine whether this process has completed. This
+ * method permits removing the only owner of a group, even in cases where this
+ * is not possible via the web client. Permission : Team member management.
+ * @function DropboxTeam#teamGroupsMembersRemove
+ * @arg {TeamGroupMembersRemoveArg} arg - The request parameters.
+ * @returns {Promise.<TeamGroupMembersChangeResult, Error.<TeamGroupMembersRemoveError>>}
+ */
+routes$1.teamGroupsMembersRemove = function (arg) {
+  return this.request('team/groups/members/remove', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Sets a member's access type in a group. Permission : Team member management.
+ * @function DropboxTeam#teamGroupsMembersSetAccessType
+ * @arg {TeamGroupMembersSetAccessTypeArg} arg - The request parameters.
+ * @returns {Promise.<Object, Error.<TeamGroupMemberSetAccessTypeError>>}
+ */
+routes$1.teamGroupsMembersSetAccessType = function (arg) {
+  return this.request('team/groups/members/set_access_type', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Updates a group's name and/or external ID. Permission : Team member
+ * management.
+ * @function DropboxTeam#teamGroupsUpdate
+ * @arg {TeamGroupUpdateArgs} arg - The request parameters.
+ * @returns {Promise.<TeamGroupFullInfo, Error.<TeamGroupUpdateError>>}
+ */
+routes$1.teamGroupsUpdate = function (arg) {
+  return this.request('team/groups/update', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * List all linked applications of the team member. Note, this endpoint does not
+ * list any team-linked applications.
+ * @function DropboxTeam#teamLinkedAppsListMemberLinkedApps
+ * @arg {TeamListMemberAppsArg} arg - The request parameters.
+ * @returns {Promise.<TeamListMemberAppsResult, Error.<TeamListMemberAppsError>>}
+ */
+routes$1.teamLinkedAppsListMemberLinkedApps = function (arg) {
+  return this.request('team/linked_apps/list_member_linked_apps', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * List all applications linked to the team members' accounts. Note, this
+ * endpoint does not list any team-linked applications.
+ * @function DropboxTeam#teamLinkedAppsListMembersLinkedApps
+ * @arg {TeamListMembersAppsArg} arg - The request parameters.
+ * @returns {Promise.<TeamListMembersAppsResult, Error.<TeamListMembersAppsError>>}
+ */
+routes$1.teamLinkedAppsListMembersLinkedApps = function (arg) {
+  return this.request('team/linked_apps/list_members_linked_apps', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * List all applications linked to the team members' accounts. Note, this
+ * endpoint doesn't list any team-linked applications.
+ * @function DropboxTeam#teamLinkedAppsListTeamLinkedApps
+ * @deprecated
+ * @arg {TeamListTeamAppsArg} arg - The request parameters.
+ * @returns {Promise.<TeamListTeamAppsResult, Error.<TeamListTeamAppsError>>}
+ */
+routes$1.teamLinkedAppsListTeamLinkedApps = function (arg) {
+  return this.request('team/linked_apps/list_team_linked_apps', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Revoke a linked application of the team member.
+ * @function DropboxTeam#teamLinkedAppsRevokeLinkedApp
+ * @arg {TeamRevokeLinkedApiAppArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<TeamRevokeLinkedAppError>>}
+ */
+routes$1.teamLinkedAppsRevokeLinkedApp = function (arg) {
+  return this.request('team/linked_apps/revoke_linked_app', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Revoke a list of linked applications of the team members.
+ * @function DropboxTeam#teamLinkedAppsRevokeLinkedAppBatch
+ * @arg {TeamRevokeLinkedApiAppBatchArg} arg - The request parameters.
+ * @returns {Promise.<TeamRevokeLinkedAppBatchResult, Error.<TeamRevokeLinkedAppBatchError>>}
+ */
+routes$1.teamLinkedAppsRevokeLinkedAppBatch = function (arg) {
+  return this.request('team/linked_apps/revoke_linked_app_batch', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Add users to member space limits excluded users list.
+ * @function DropboxTeam#teamMemberSpaceLimitsExcludedUsersAdd
+ * @arg {TeamExcludedUsersUpdateArg} arg - The request parameters.
+ * @returns {Promise.<TeamExcludedUsersUpdateResult, Error.<TeamExcludedUsersUpdateError>>}
+ */
+routes$1.teamMemberSpaceLimitsExcludedUsersAdd = function (arg) {
+  return this.request('team/member_space_limits/excluded_users/add', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * List member space limits excluded users.
+ * @function DropboxTeam#teamMemberSpaceLimitsExcludedUsersList
+ * @arg {TeamExcludedUsersListArg} arg - The request parameters.
+ * @returns {Promise.<TeamExcludedUsersListResult, Error.<TeamExcludedUsersListError>>}
+ */
+routes$1.teamMemberSpaceLimitsExcludedUsersList = function (arg) {
+  return this.request('team/member_space_limits/excluded_users/list', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Continue listing member space limits excluded users.
+ * @function DropboxTeam#teamMemberSpaceLimitsExcludedUsersListContinue
+ * @arg {TeamExcludedUsersListContinueArg} arg - The request parameters.
+ * @returns {Promise.<TeamExcludedUsersListResult, Error.<TeamExcludedUsersListContinueError>>}
+ */
+routes$1.teamMemberSpaceLimitsExcludedUsersListContinue = function (arg) {
+  return this.request('team/member_space_limits/excluded_users/list/continue', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Remove users from member space limits excluded users list.
+ * @function DropboxTeam#teamMemberSpaceLimitsExcludedUsersRemove
+ * @arg {TeamExcludedUsersUpdateArg} arg - The request parameters.
+ * @returns {Promise.<TeamExcludedUsersUpdateResult, Error.<TeamExcludedUsersUpdateError>>}
+ */
+routes$1.teamMemberSpaceLimitsExcludedUsersRemove = function (arg) {
+  return this.request('team/member_space_limits/excluded_users/remove', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Get users custom quota. Returns none as the custom quota if none was set. A
+ * maximum of 1000 members can be specified in a single call.
+ * @function DropboxTeam#teamMemberSpaceLimitsGetCustomQuota
+ * @arg {TeamCustomQuotaUsersArg} arg - The request parameters.
+ * @returns {Promise.<Array.<TeamCustomQuotaResult>, Error.<TeamCustomQuotaError>>}
+ */
+routes$1.teamMemberSpaceLimitsGetCustomQuota = function (arg) {
+  return this.request('team/member_space_limits/get_custom_quota', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Remove users custom quota. A maximum of 1000 members can be specified in a
+ * single call.
+ * @function DropboxTeam#teamMemberSpaceLimitsRemoveCustomQuota
+ * @arg {TeamCustomQuotaUsersArg} arg - The request parameters.
+ * @returns {Promise.<Array.<TeamRemoveCustomQuotaResult>, Error.<TeamCustomQuotaError>>}
+ */
+routes$1.teamMemberSpaceLimitsRemoveCustomQuota = function (arg) {
+  return this.request('team/member_space_limits/remove_custom_quota', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Set users custom quota. Custom quota has to be at least 15GB. A maximum of
+ * 1000 members can be specified in a single call.
+ * @function DropboxTeam#teamMemberSpaceLimitsSetCustomQuota
+ * @arg {TeamSetCustomQuotaArg} arg - The request parameters.
+ * @returns {Promise.<Array.<TeamCustomQuotaResult>, Error.<TeamSetCustomQuotaError>>}
+ */
+routes$1.teamMemberSpaceLimitsSetCustomQuota = function (arg) {
+  return this.request('team/member_space_limits/set_custom_quota', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Adds members to a team. Permission : Team member management A maximum of 20
+ * members can be specified in a single call. If no Dropbox account exists with
+ * the email address specified, a new Dropbox account will be created with the
+ * given email address, and that account will be invited to the team. If a
+ * personal Dropbox account exists with the email address specified in the call,
+ * this call will create a placeholder Dropbox account for the user on the team
+ * and send an email inviting the user to migrate their existing personal
+ * account onto the team. Team member management apps are required to set an
+ * initial given_name and surname for a user to use in the team invitation and
+ * for 'Perform as team member' actions taken on the user before they become
+ * 'active'.
+ * @function DropboxTeam#teamMembersAdd
+ * @arg {TeamMembersAddArg} arg - The request parameters.
+ * @returns {Promise.<TeamMembersAddLaunch, Error.<void>>}
+ */
+routes$1.teamMembersAdd = function (arg) {
+  return this.request('team/members/add', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once an async_job_id is returned from members/add , use this to poll the
+ * status of the asynchronous request. Permission : Team member management.
+ * @function DropboxTeam#teamMembersAddJobStatusGet
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<TeamMembersAddJobStatus, Error.<AsyncPollError>>}
+ */
+routes$1.teamMembersAddJobStatusGet = function (arg) {
+  return this.request('team/members/add/job_status/get', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Returns information about multiple team members. Permission : Team
+ * information This endpoint will return MembersGetInfoItem.id_not_found, for
+ * IDs (or emails) that cannot be matched to a valid team member.
+ * @function DropboxTeam#teamMembersGetInfo
+ * @arg {TeamMembersGetInfoArgs} arg - The request parameters.
+ * @returns {Promise.<Object, Error.<TeamMembersGetInfoError>>}
+ */
+routes$1.teamMembersGetInfo = function (arg) {
+  return this.request('team/members/get_info', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Lists members of a team. Permission : Team information.
+ * @function DropboxTeam#teamMembersList
+ * @arg {TeamMembersListArg} arg - The request parameters.
+ * @returns {Promise.<TeamMembersListResult, Error.<TeamMembersListError>>}
+ */
+routes$1.teamMembersList = function (arg) {
+  return this.request('team/members/list', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from members/list, use this to paginate
+ * through all team members. Permission : Team information.
+ * @function DropboxTeam#teamMembersListContinue
+ * @arg {TeamMembersListContinueArg} arg - The request parameters.
+ * @returns {Promise.<TeamMembersListResult, Error.<TeamMembersListContinueError>>}
+ */
+routes$1.teamMembersListContinue = function (arg) {
+  return this.request('team/members/list/continue', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Recover a deleted member. Permission : Team member management Exactly one of
+ * team_member_id, email, or external_id must be provided to identify the user
+ * account.
+ * @function DropboxTeam#teamMembersRecover
+ * @arg {TeamMembersRecoverArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<TeamMembersRecoverError>>}
+ */
+routes$1.teamMembersRecover = function (arg) {
+  return this.request('team/members/recover', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Removes a member from a team. Permission : Team member management Exactly one
+ * of team_member_id, email, or external_id must be provided to identify the
+ * user account. Accounts can be recovered via members/recover for a 7 day
+ * period or until the account has been permanently deleted or transferred to
+ * another account (whichever comes first). Calling members/add while a user is
+ * still recoverable on your team will return with
+ * MemberAddResult.user_already_on_team. Accounts can have their files
+ * transferred via the admin console for a limited time, based on the version
+ * history length associated with the team (120 days for most teams). This
+ * endpoint may initiate an asynchronous job. To obtain the final result of the
+ * job, the client should periodically poll members/remove/job_status/get.
+ * @function DropboxTeam#teamMembersRemove
+ * @arg {TeamMembersRemoveArg} arg - The request parameters.
+ * @returns {Promise.<AsyncLaunchEmptyResult, Error.<TeamMembersRemoveError>>}
+ */
+routes$1.teamMembersRemove = function (arg) {
+  return this.request('team/members/remove', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once an async_job_id is returned from members/remove , use this to poll the
+ * status of the asynchronous request. Permission : Team member management.
+ * @function DropboxTeam#teamMembersRemoveJobStatusGet
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<AsyncPollEmptyResult, Error.<AsyncPollError>>}
+ */
+routes$1.teamMembersRemoveJobStatusGet = function (arg) {
+  return this.request('team/members/remove/job_status/get', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Sends welcome email to pending team member. Permission : Team member
+ * management Exactly one of team_member_id, email, or external_id must be
+ * provided to identify the user account. No-op if team member is not pending.
+ * @function DropboxTeam#teamMembersSendWelcomeEmail
+ * @arg {TeamUserSelectorArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<TeamMembersSendWelcomeError>>}
+ */
+routes$1.teamMembersSendWelcomeEmail = function (arg) {
+  return this.request('team/members/send_welcome_email', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Updates a team member's permissions. Permission : Team member management.
+ * @function DropboxTeam#teamMembersSetAdminPermissions
+ * @arg {TeamMembersSetPermissionsArg} arg - The request parameters.
+ * @returns {Promise.<TeamMembersSetPermissionsResult, Error.<TeamMembersSetPermissionsError>>}
+ */
+routes$1.teamMembersSetAdminPermissions = function (arg) {
+  return this.request('team/members/set_admin_permissions', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Updates a team member's profile. Permission : Team member management.
+ * @function DropboxTeam#teamMembersSetProfile
+ * @arg {TeamMembersSetProfileArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamMemberInfo, Error.<TeamMembersSetProfileError>>}
+ */
+routes$1.teamMembersSetProfile = function (arg) {
+  return this.request('team/members/set_profile', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Suspend a member from a team. Permission : Team member management Exactly one
+ * of team_member_id, email, or external_id must be provided to identify the
+ * user account.
+ * @function DropboxTeam#teamMembersSuspend
+ * @arg {TeamMembersDeactivateArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<TeamMembersSuspendError>>}
+ */
+routes$1.teamMembersSuspend = function (arg) {
+  return this.request('team/members/suspend', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Unsuspend a member from a team. Permission : Team member management Exactly
+ * one of team_member_id, email, or external_id must be provided to identify the
+ * user account.
+ * @function DropboxTeam#teamMembersUnsuspend
+ * @arg {TeamMembersUnsuspendArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<TeamMembersUnsuspendError>>}
+ */
+routes$1.teamMembersUnsuspend = function (arg) {
+  return this.request('team/members/unsuspend', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Returns a list of all team-accessible namespaces. This list includes team
+ * folders, shared folders containing team members, team members' home
+ * namespaces, and team members' app folders. Home namespaces and app folders
+ * are always owned by this team or members of the team, but shared folders may
+ * be owned by other users or other teams. Duplicates may occur in the list.
+ * @function DropboxTeam#teamNamespacesList
+ * @arg {TeamTeamNamespacesListArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamNamespacesListResult, Error.<void>>}
+ */
+routes$1.teamNamespacesList = function (arg) {
+  return this.request('team/namespaces/list', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from namespaces/list, use this to paginate
+ * through all team-accessible namespaces. Duplicates may occur in the list.
+ * @function DropboxTeam#teamNamespacesListContinue
+ * @arg {TeamTeamNamespacesListContinueArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamNamespacesListResult, Error.<TeamTeamNamespacesListContinueError>>}
+ */
+routes$1.teamNamespacesListContinue = function (arg) {
+  return this.request('team/namespaces/list/continue', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * @function DropboxTeam#teamPropertiesTemplateAdd
+ * @deprecated
+ * @arg {FilePropertiesAddTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesAddTemplateResult, Error.<FilePropertiesModifyTemplateError>>}
+ */
+routes$1.teamPropertiesTemplateAdd = function (arg) {
+  return this.request('team/properties/template/add', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * @function DropboxTeam#teamPropertiesTemplateGet
+ * @deprecated
+ * @arg {FilePropertiesGetTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesGetTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes$1.teamPropertiesTemplateGet = function (arg) {
+  return this.request('team/properties/template/get', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * @function DropboxTeam#teamPropertiesTemplateList
+ * @deprecated
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesListTemplateResult, Error.<FilePropertiesTemplateError>>}
+ */
+routes$1.teamPropertiesTemplateList = function (arg) {
+  return this.request('team/properties/template/list', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * @function DropboxTeam#teamPropertiesTemplateUpdate
+ * @deprecated
+ * @arg {FilePropertiesUpdateTemplateArg} arg - The request parameters.
+ * @returns {Promise.<FilePropertiesUpdateTemplateResult, Error.<FilePropertiesModifyTemplateError>>}
+ */
+routes$1.teamPropertiesTemplateUpdate = function (arg) {
+  return this.request('team/properties/template/update', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Retrieves reporting data about a team's user activity.
+ * @function DropboxTeam#teamReportsGetActivity
+ * @arg {TeamDateRange} arg - The request parameters.
+ * @returns {Promise.<TeamGetActivityReport, Error.<TeamDateRangeError>>}
+ */
+routes$1.teamReportsGetActivity = function (arg) {
+  return this.request('team/reports/get_activity', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Retrieves reporting data about a team's linked devices.
+ * @function DropboxTeam#teamReportsGetDevices
+ * @arg {TeamDateRange} arg - The request parameters.
+ * @returns {Promise.<TeamGetDevicesReport, Error.<TeamDateRangeError>>}
+ */
+routes$1.teamReportsGetDevices = function (arg) {
+  return this.request('team/reports/get_devices', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Retrieves reporting data about a team's membership.
+ * @function DropboxTeam#teamReportsGetMembership
+ * @arg {TeamDateRange} arg - The request parameters.
+ * @returns {Promise.<TeamGetMembershipReport, Error.<TeamDateRangeError>>}
+ */
+routes$1.teamReportsGetMembership = function (arg) {
+  return this.request('team/reports/get_membership', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Retrieves reporting data about a team's storage usage.
+ * @function DropboxTeam#teamReportsGetStorage
+ * @arg {TeamDateRange} arg - The request parameters.
+ * @returns {Promise.<TeamGetStorageReport, Error.<TeamDateRangeError>>}
+ */
+routes$1.teamReportsGetStorage = function (arg) {
+  return this.request('team/reports/get_storage', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Sets an archived team folder's status to active. Permission : Team member
+ * file access.
+ * @function DropboxTeam#teamTeamFolderActivate
+ * @arg {TeamTeamFolderIdArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamFolderMetadata, Error.<TeamTeamFolderActivateError>>}
+ */
+routes$1.teamTeamFolderActivate = function (arg) {
+  return this.request('team/team_folder/activate', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Sets an active team folder's status to archived and removes all folder and
+ * file members. Permission : Team member file access.
+ * @function DropboxTeam#teamTeamFolderArchive
+ * @arg {TeamTeamFolderArchiveArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamFolderArchiveLaunch, Error.<TeamTeamFolderArchiveError>>}
+ */
+routes$1.teamTeamFolderArchive = function (arg) {
+  return this.request('team/team_folder/archive', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Returns the status of an asynchronous job for archiving a team folder.
+ * Permission : Team member file access.
+ * @function DropboxTeam#teamTeamFolderArchiveCheck
+ * @arg {AsyncPollArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamFolderArchiveJobStatus, Error.<AsyncPollError>>}
+ */
+routes$1.teamTeamFolderArchiveCheck = function (arg) {
+  return this.request('team/team_folder/archive/check', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Creates a new, active, team folder with no members. Permission : Team member
+ * file access.
+ * @function DropboxTeam#teamTeamFolderCreate
+ * @arg {TeamTeamFolderCreateArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamFolderMetadata, Error.<TeamTeamFolderCreateError>>}
+ */
+routes$1.teamTeamFolderCreate = function (arg) {
+  return this.request('team/team_folder/create', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Retrieves metadata for team folders. Permission : Team member file access.
+ * @function DropboxTeam#teamTeamFolderGetInfo
+ * @arg {TeamTeamFolderIdListArg} arg - The request parameters.
+ * @returns {Promise.<Array.<TeamTeamFolderGetInfoItem>, Error.<void>>}
+ */
+routes$1.teamTeamFolderGetInfo = function (arg) {
+  return this.request('team/team_folder/get_info', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Lists all team folders. Permission : Team member file access.
+ * @function DropboxTeam#teamTeamFolderList
+ * @arg {TeamTeamFolderListArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamFolderListResult, Error.<TeamTeamFolderListError>>}
+ */
+routes$1.teamTeamFolderList = function (arg) {
+  return this.request('team/team_folder/list', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Once a cursor has been retrieved from team_folder/list, use this to paginate
+ * through all team folders. Permission : Team member file access.
+ * @function DropboxTeam#teamTeamFolderListContinue
+ * @arg {TeamTeamFolderListContinueArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamFolderListResult, Error.<TeamTeamFolderListContinueError>>}
+ */
+routes$1.teamTeamFolderListContinue = function (arg) {
+  return this.request('team/team_folder/list/continue', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Permanently deletes an archived team folder. Permission : Team member file
+ * access.
+ * @function DropboxTeam#teamTeamFolderPermanentlyDelete
+ * @arg {TeamTeamFolderIdArg} arg - The request parameters.
+ * @returns {Promise.<void, Error.<TeamTeamFolderPermanentlyDeleteError>>}
+ */
+routes$1.teamTeamFolderPermanentlyDelete = function (arg) {
+  return this.request('team/team_folder/permanently_delete', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Changes an active team folder's name. Permission : Team member file access.
+ * @function DropboxTeam#teamTeamFolderRename
+ * @arg {TeamTeamFolderRenameArg} arg - The request parameters.
+ * @returns {Promise.<TeamTeamFolderMetadata, Error.<TeamTeamFolderRenameError>>}
+ */
+routes$1.teamTeamFolderRename = function (arg) {
+  return this.request('team/team_folder/rename', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * Returns the member profile of the admin who generated the team access token
+ * used to make the call.
+ * @function DropboxTeam#teamTokenGetAuthenticatedAdmin
+ * @arg {void} arg - The request parameters.
+ * @returns {Promise.<TeamTokenGetAuthenticatedAdminResult, Error.<TeamTokenGetAuthenticatedAdminError>>}
+ */
+routes$1.teamTokenGetAuthenticatedAdmin = function (arg) {
+  return this.request('team/token/get_authenticated_admin', arg, 'team', 'api', 'rpc');
+};
+
+/**
+ * @class DropboxTeam
+ * @extends DropboxBase
+ * @classdesc The Dropbox SDK class that provides access to team endpoints.
+ * @arg {Object} options
+ * @arg {String} [options.accessToken] - An access token for making authenticated
+ * requests.
+ * @arg {String} [options.clientId] - The client id for your app. Used to create
+ * authentication URL.
+ */
+var DropboxTeam = function (_DropboxBase) {
+  inherits(DropboxTeam, _DropboxBase);
+
+  function DropboxTeam(options) {
+    classCallCheck(this, DropboxTeam);
+
+    var _this = possibleConstructorReturn(this, (DropboxTeam.__proto__ || Object.getPrototypeOf(DropboxTeam)).call(this, options));
+
+    Object.assign(_this, routes$1);
+    return _this;
+  }
+
+  /**
+   * Returns an instance of Dropbox that can make calls to user api endpoints on
+   * behalf of the passed user id, using the team access token.
+   * @arg {String} userId - The user id to use the Dropbox class as
+   * @returns {Dropbox} An instance of Dropbox used to make calls to user api
+   * endpoints
+   */
+
+
+  createClass(DropboxTeam, [{
+    key: 'actAsUser',
+    value: function actAsUser(userId) {
+      return new Dropbox({
+        accessToken: this.accessToken,
+        clientId: this.clientId,
+        selectUser: userId
+      });
+    }
+  }]);
+  return DropboxTeam;
+}(DropboxBase);
+
+
+
+var dropboxTeam = Object.freeze({
+	DropboxTeam: DropboxTeam
+});
+
+var team = dropboxTeam.DropboxTeam;
+
+return team;
+
+})));
+//# sourceMappingURL=DropboxTeam-sdk.js.map

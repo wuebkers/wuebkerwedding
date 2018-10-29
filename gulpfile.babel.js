@@ -27,11 +27,15 @@ const config = {
 	},
 	scripts: {
 		source: [
-			'./src/scripts/google-analytics.js',
+			'./src/scripts/slider.js',
 			'./src/scripts/global.js'
 		],
 		modules: [
-		'node_modules/jquery/dist/jquery.js'
+			'node_modules/jquery/dist/jquery.js',
+			'node_modules/slick-carousel/slick/slick.min.js',
+			'node_modules/dropbox/dist/Dropbox-sdk.js',
+			'node_modules/dropbox/dist/DropboxTeam-sdk.js',
+
 		],
 		destination: './dist'
 	},
