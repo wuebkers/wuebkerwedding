@@ -40,8 +40,11 @@ var Global = function () {
 
 				var scrollPercent = $(document).scrollTop() / 80;
 				var scalePercent = $(document).scrollTop() / 30 + 100;
-				var opacityPercent = 1 - $(document).scrollTop() / 1000;
-				$('.hero__media').attr('style', 'filter: blur(' + scrollPercent + 'px); background-size: ' + scalePercent + '%;');
+				if (window.innerWidth > 700) {
+					$('.hero__media').attr('style', 'filter: blur(' + scrollPercent + 'px); background-size: ' + scalePercent + '% auto');
+				} else {
+					$('.hero__media').attr('style', 'filter: blur(' + scrollPercent + 'px); background-size:  auto ' + scalePercent + '%');
+				}
 			});
 		}
 	}]);
