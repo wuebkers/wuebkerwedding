@@ -17,6 +17,40 @@
 			background-size: cover;
 			background-position: center;
 		}
+
+		&__title {
+			position: absolute;
+			bottom: 50px;
+			z-index: 1;
+			color: #fff;
+			left: 50%;
+			transform: translateX(-50%);
+			text-align: center;
+			font-size: 120px;
+			font-weight: 300;
+			font-style: italic;
+			line-height: 1.1;
+			white-space: nowrap;
+
+			small {
+				display: block;
+				font-size: 20px;
+				letter-spacing: 0;
+				font-style: normal;
+			}
+
+			@media screen and (max-width: 700px) {
+				font-size: 80px;
+			}
+
+			@media screen and (max-width: 465px) {
+				font-size: 60px;
+			}
+
+			@media screen and (max-width: 350px) {
+				font-size: 50px;
+			}
+		}
 	}
 
 	.info {
@@ -40,11 +74,29 @@
 			display: flex;
 			align-items: flex-start;
 			justify-content: space-around;
+
+			@media screen and (max-width: 700px) {
+				flex-direction: column;
+				align-items: center;
+
+				div {
+					margin-bottom: 40px;
+					
+					&:last-child {
+						margin-bottom: 0;
+					}
+				}
+			}
 		}
 
 		p {
 			font-size: 20px;
 			margin-bottom: 40px;
+
+			@media screen and (max-width: 700px) {
+				text-align: center;
+			}
+
 			span {
 				font-style: italic;
 				font-size: 14px;
@@ -67,12 +119,25 @@
 			display: flex;
 			align-items: flex-start;
 			justify-content: space-around;
+
+			@media screen and (max-width: 700px) {
+				flex-direction: column;
+				align-items: center;
+
+				a {
+					margin-bottom: 0;
+				}
+			}
 		}
 		img {
 			max-height: 150px;
 			filter: grayscale(100%);
 			opacity: .5;
 			transition: all 0.3s;
+
+			@media screen and (max-width: 700px) {
+				max-height: 100px;
+			}
 
 			&:hover {
 				opacity: 1;
@@ -117,13 +182,13 @@
 	.footer {
 		color: #fff;
 		background: #8c0000;
-		padding: 10px;
+		padding: 10px 50px;
 		
 		p {
 			max-width: 800px;
 			color: #fff;
 			font-size: 10px;
-			line-height: 15px;
+			line-height: 18px;
 			letter-spacing: 0;
 			margin: 0 auto;
 			text-align: center;

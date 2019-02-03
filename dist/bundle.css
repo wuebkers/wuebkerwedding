@@ -291,6 +291,9 @@ body {
 
 section {
   padding: 100px 0; }
+  @media screen and (max-width: 700px) {
+    section {
+      padding: 50px 0; } }
 
 h1, h2 {
   color: #8c0000;
@@ -306,6 +309,12 @@ h2 {
   padding: 0 20px;
   position: relative;
   font-weight: 300; }
+  @media screen and (max-width: 700px) {
+    h2 {
+      font-size: 40px; } }
+  @media screen and (max-width: 350px) {
+    h2 {
+      font-size: 30px; } }
   h2:after {
     content: '';
     height: 2px;
@@ -391,6 +400,35 @@ nav {
       background: url("/dist/media/hero.jpg");
       background-size: cover;
       background-position: center; }
+    .home .hero__title {
+      position: absolute;
+      bottom: 50px;
+      z-index: 1;
+      color: #fff;
+      left: 50%;
+      -webkit-transform: translateX(-50%);
+          -ms-transform: translateX(-50%);
+              transform: translateX(-50%);
+      text-align: center;
+      font-size: 120px;
+      font-weight: 300;
+      font-style: italic;
+      line-height: 1.1;
+      white-space: nowrap; }
+      .home .hero__title small {
+        display: block;
+        font-size: 20px;
+        letter-spacing: 0;
+        font-style: normal; }
+      @media screen and (max-width: 700px) {
+        .home .hero__title {
+          font-size: 80px; } }
+      @media screen and (max-width: 465px) {
+        .home .hero__title {
+          font-size: 60px; } }
+      @media screen and (max-width: 350px) {
+        .home .hero__title {
+          font-size: 50px; } }
   .home .info__copy {
     margin: 0 auto;
     text-align: center;
@@ -410,9 +448,25 @@ nav {
             align-items: flex-start;
     -ms-flex-pack: distribute;
         justify-content: space-around; }
+    @media screen and (max-width: 700px) {
+      .home .party__wrapper {
+        -webkit-box-orient: vertical;
+        -webkit-box-direction: normal;
+            -ms-flex-direction: column;
+                flex-direction: column;
+        -webkit-box-align: center;
+            -ms-flex-align: center;
+                align-items: center; }
+        .home .party__wrapper div {
+          margin-bottom: 40px; }
+          .home .party__wrapper div:last-child {
+            margin-bottom: 0; } }
   .home .party p {
     font-size: 20px;
     margin-bottom: 40px; }
+    @media screen and (max-width: 700px) {
+      .home .party p {
+        text-align: center; } }
     .home .party p span {
       font-style: italic;
       font-size: 14px; }
@@ -432,6 +486,17 @@ nav {
             align-items: flex-start;
     -ms-flex-pack: distribute;
         justify-content: space-around; }
+    @media screen and (max-width: 700px) {
+      .home .registry__wrapper {
+        -webkit-box-orient: vertical;
+        -webkit-box-direction: normal;
+            -ms-flex-direction: column;
+                flex-direction: column;
+        -webkit-box-align: center;
+            -ms-flex-align: center;
+                align-items: center; }
+        .home .registry__wrapper a {
+          margin-bottom: 0; } }
   .home .registry img {
     max-height: 150px;
     -webkit-filter: grayscale(100%);
@@ -439,6 +504,9 @@ nav {
     opacity: .5;
     -webkit-transition: all 0.3s;
     transition: all 0.3s; }
+    @media screen and (max-width: 700px) {
+      .home .registry img {
+        max-height: 100px; } }
     .home .registry img:hover {
       opacity: 1;
       -webkit-filter: grayscale(0);
@@ -479,12 +547,12 @@ nav {
   .home .footer {
     color: #fff;
     background: #8c0000;
-    padding: 10px; }
+    padding: 10px 50px; }
     .home .footer p {
       max-width: 800px;
       color: #fff;
       font-size: 10px;
-      line-height: 15px;
+      line-height: 18px;
       letter-spacing: 0;
       margin: 0 auto;
       text-align: center; }
