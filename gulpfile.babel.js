@@ -21,7 +21,10 @@ const config = {
 		destination: './dist'
 	},
 	styles: {
-		source: './src/styles/**/*.scss',
+		source: [
+			'./src/styles/**/*.scss',
+			'node_modules/luminous-lightbox/dist/luminous-basic.min.css'
+		],
 		destination: './dist',
 		browsers: ['last 2 versions', 'ie >= 9']
 	},
@@ -32,9 +35,7 @@ const config = {
 		],
 		modules: [
 			'node_modules/jquery/dist/jquery.js',
-			'node_modules/slick-carousel/slick/slick.min.js',
-			'node_modules/dropbox/dist/Dropbox-sdk.js',
-			'node_modules/dropbox/dist/DropboxTeam-sdk.js',
+			'node_modules/luminous-lightbox/dist/luminous.min.js',
 
 		],
 		destination: './dist'

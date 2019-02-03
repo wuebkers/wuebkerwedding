@@ -1,5 +1,6 @@
 // dependencies
 import $ from 'jquery';
+import { Luminous } from "luminous-lightbox";
 
 
 // polyfills

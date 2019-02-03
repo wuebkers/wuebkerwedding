@@ -33,9 +33,7 @@
     "yargs": "^10.0.3"
   },
   "dependencies": {
-    "dropbox": "^4.0.1",
     "jquery": "^3.2.1",
-    "simple-lightbox": "^2.1.0",
-    "slick-carousel": "^1.8.1"
+    "luminous-lightbox": "^2.3.2"
   }
 }

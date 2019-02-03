@@ -11,9 +11,18 @@ class Global {
 			var scalePercent = ($(document).scrollTop() / 30) + 100;
 			if(window.innerWidth > 768) {
 				$('.hero__media').attr('style', 'filter: blur(' + scrollPercent + 'px); background-size: ' + scalePercent + '% auto');
-				$(".photos__wrapper a").simpleLightbox();
 			}
-		});		
+		});
+
+		var galleryOpts = {
+			// Whether pressing the arrow keys should move to the next/previous slide.
+			arrowNavigation: true
+		};
+
+		new LuminousGallery(
+      document.querySelectorAll(".photos__photo"),
+      galleryOpts
+    );
 	}	
 }
 
