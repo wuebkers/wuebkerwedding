@@ -546,6 +546,12 @@ nav {
     left: 50%;
     -webkit-transition: all .3s;
     transition: all .3s; }
+    .home .button[disabled] {
+      border: 0;
+      background: #e6e6e6;
+      cursor: not-allowed; }
+      .home .button[disabled]:hover {
+        background: #e6e6e6; }
     .home .button:hover {
       background: #ebb000;
       color: #fff; }
