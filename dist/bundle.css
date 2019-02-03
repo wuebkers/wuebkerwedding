@@ -285,6 +285,45 @@ template {
 [hidden] {
   display: none !important; }
 
+body {
+  background-color: #fcfcfc;
+  background-image: url("https://www.transparenttextures.com/patterns/fake-luxury.png"); }
+
+section {
+  padding: 100px 0; }
+
+h1, h2 {
+  color: #8c0000;
+  text-align: center;
+  font-family: 'Dancing Script', cursive; }
+
+h1 {
+  font-size: 40px; }
+
+h2 {
+  font-size: 60px;
+  margin-bottom: 30px;
+  padding: 0 20px;
+  position: relative;
+  font-weight: 300; }
+  h2:after {
+    content: '';
+    height: 2px;
+    width: 30px;
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    -webkit-transform: translateX(-50%);
+        -ms-transform: translateX(-50%);
+            transform: translateX(-50%);
+    background: #ebb000; }
+
+p {
+  color: #737170;
+  font-family: 'Open Sans', sans-serif;
+  font-weight: 300;
+  letter-spacing: -.5px; }
+
 nav {
   background: #fff;
   padding: 15px 20px;
@@ -335,91 +374,123 @@ nav {
           width: calc(100% - 40px);
           left: 20px; }
 
-.home .slider {
-  height: 85vh;
-  min-height: 500px;
-  width: 100%;
+.home {
   position: relative; }
-  .home .slider .slide-wrapper {
-    position: relative; }
-  .home .slider .slide-wrapper, .home .slider .slick-list, .home .slider .slick-track {
-    height: 100%;
-    width: 100%; }
-  .home .slider .slick-arrow {
-    display: none !important; }
-  .home .slider .container {
-    position: absolute;
+  .home .hero {
+    height: 90vh;
+    width: 100vw;
+    position: relative;
+    background: #4d131e; }
+    .home .hero__media {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      background: url("/dist/media/hero.jpg");
+      background-size: cover;
+      background-position: center; }
+  .home .info__copy {
+    margin: 0 auto;
     text-align: center;
-    width: 100%;
-    top: 50%;
-    -webkit-transform: translateY(-50%);
-        -ms-transform: translateY(-50%);
-            transform: translateY(-50%);
-    z-index: 1; }
-    .home .slider .container h1 {
-      font-family: "Abril Fatface", cursive;
-      font-size: 100px;
-      font-weight: 300;
-      font-style: italic;
-      margin: 0; }
-  .home .slider .slide {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    opacity: 0 !important;
-    z-index: -1 !important; }
-    .home .slider .slide.slick-active {
-      opacity: 1 !important; }
-  .home .slider ul {
-    padding: 0;
-    list-style: none;
+    padding: 0 20px;
+    font-size: 18px;
+    font-weight: 300; }
+    .home .info__copy span {
+      display: block; }
+  .home .party__wrapper {
+    max-width: 800px;
     margin: 0 auto;
     display: -webkit-box;
     display: -ms-flexbox;
     display: flex;
-    -webkit-box-align: center;
-        -ms-flex-align: center;
-            align-items: center;
-    -webkit-box-pack: center;
-        -ms-flex-pack: center;
-            justify-content: center;
-    position: absolute;
-    bottom: 10px;
-    width: 100%;
-    z-index: 1; }
-  .home .slider .slide {
-    background-size: cover;
-    background-position: center;
-    height: 100%;
-    width: 100%; }
-
-.home .teaser {
-  padding: 100px 0; }
-  .home .teaser .wrapper {
+    -webkit-box-align: start;
+        -ms-flex-align: start;
+            align-items: flex-start;
+    -ms-flex-pack: distribute;
+        justify-content: space-around; }
+  .home .party p {
+    font-size: 20px;
+    margin-bottom: 40px; }
+    .home .party p span {
+      font-style: italic;
+      font-size: 14px; }
+    .home .party p small {
+      display: block;
+      font-size: 12px; }
+    .home .party p:last-child {
+      margin-bottom: 0; }
+  .home .registry__wrapper {
+    max-width: 500px;
+    margin: 50px auto 0;
     display: -webkit-box;
     display: -ms-flexbox;
     display: flex;
+    -webkit-box-align: start;
+        -ms-flex-align: start;
+            align-items: flex-start;
+    -ms-flex-pack: distribute;
+        justify-content: space-around; }
+  .home .registry img {
+    max-height: 150px;
+    -webkit-filter: grayscale(100%);
+            filter: grayscale(100%);
+    opacity: .5;
+    -webkit-transition: all 0.3s;
+    transition: all 0.3s; }
+    .home .registry img:hover {
+      opacity: 1;
+      -webkit-filter: grayscale(0);
+              filter: grayscale(0); }
+  .home .travel {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+            flex-direction: column;
     -webkit-box-align: center;
         -ms-flex-align: center;
-            align-items: center;
-    -webkit-box-pack: center;
-        -ms-flex-pack: center;
-            justify-content: center; }
-  .home .teaser .image {
-    -ms-flex-preferred-size: 50%;
-        flex-basis: 50%;
-    height: 400px;
-    background-position: center;
-    background-size: cover; }
-  .home .teaser .content {
-    -ms-flex-preferred-size: 45%;
-        flex-basis: 45%;
-    padding: 50px;
-    background: rgba(255, 255, 255, 0.75);
-    margin-left: -150px; }
+            align-items: center; }
+    .home .travel__copy {
+      margin: 0 auto;
+      max-width: 500px;
+      text-align: center;
+      padding: 0 20px;
+      font-size: 18px;
+      font-weight: 300; }
+  .home .button {
+    font-family: 'open sans', sans-serif;
+    padding: 15px 25px;
+    border: 3px solid #ebb000;
+    text-transform: uppercase;
+    letter-spacing: -.5px;
+    margin: 30px auto 0;
+    text-align: center;
+    display: inline-block;
+    left: 50%;
+    -webkit-transition: all .3s;
+    transition: all .3s; }
+    .home .button:hover {
+      background: #ebb000;
+      color: #fff; }
+  .home .footer {
+    color: #fff;
+    background: #8c0000;
+    padding: 10px; }
+    .home .footer p {
+      max-width: 800px;
+      color: #fff;
+      font-size: 10px;
+      line-height: 15px;
+      letter-spacing: 0;
+      margin: 0 auto;
+      text-align: center; }
 
 body {
-  font-family: "Quicksand", sans-serif;
+  font-family: "Dancing Script", cursive;
   color: #333;
   font-weight: 400; }
 

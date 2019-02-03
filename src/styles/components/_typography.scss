@@ -1,0 +1,35 @@
+h1, h2 {
+	color: #8c0000;
+	text-align: center;
+	font-family: 'Dancing Script', cursive;
+}
+
+h1 {
+	font-size: 40px;
+}
+
+h2 {
+	font-size: 60px;
+	margin-bottom: 30px;
+	padding: 0 20px;
+	position: relative;
+	font-weight: 300;
+
+	&:after {
+		content: '';
+		height: 2px;
+		width: 30px;
+		position: absolute;
+		bottom: -10px;
+		left: 50%;
+		transform: translateX(-50%);
+		background: #ebb000;
+	}
+}
+
+p {
+	color: #737170;
+	font-family: 'Open Sans', sans-serif;
+	font-weight: 300;
+	letter-spacing: -.5px;
+}
