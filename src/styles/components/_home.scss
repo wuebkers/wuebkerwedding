@@ -4,18 +4,21 @@
 		height: 90vh;
 		width: 100vw;
 		position: relative;
-		background: #4d131e;
+		overflow: hidden;
 	
 		&__media {
 			position: absolute;
-			top: 0;
-			left: 0;
-			height: 100%;
-			width: 100%;
+			top: -25%;
+			left: -25%;
+			height: 150%;
+			width: 150%;
 			margin: 0;
 			background: url('/dist/media/hero.jpg');
 			background-size: cover;
 			background-position: center;
+			background-attachment: fixed;
+			transform-origin: center;
+			pointer-events: none;
 		}
 
 		&__title {
@@ -180,13 +183,10 @@
 	}
 
 	.footer {
-		color: #fff;
-		background: #8c0000;
 		padding: 10px 50px;
 		
 		p {
 			max-width: 800px;
-			color: #fff;
 			font-size: 10px;
 			line-height: 18px;
 			letter-spacing: 0;

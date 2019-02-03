@@ -21,7 +21,7 @@ var slider = function () {
 
 	return slider;
 }();
-"use strict";
+'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -33,8 +33,17 @@ var Global = function () {
 	}
 
 	_createClass(Global, [{
-		key: "init",
-		value: function init() {}
+		key: 'init',
+		value: function init() {
+			// Backround color scroll animation
+			$(window).on('scroll', function () {
+
+				var scrollPercent = $(document).scrollTop() / 80;
+				var scalePercent = $(document).scrollTop() / 3000 + 1;
+				var opacityPercent = 1 - $(document).scrollTop() / 1000;
+				$('.hero__media').attr('style', 'filter: blur(' + scrollPercent + 'px); transform: scale(' + scalePercent + '); opacity:' + opacityPercent + ';');
+			});
+		}
 	}]);
 
 	return Global;
