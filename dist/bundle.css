@@ -405,6 +405,9 @@ nav {
           -ms-transform-origin: center;
               transform-origin: center;
       pointer-events: none; }
+      @media screen and (max-width: 768px) {
+        .home .hero__media {
+          background-attachment: unset; } }
     .home .hero__title {
       position: absolute;
       bottom: 50px;

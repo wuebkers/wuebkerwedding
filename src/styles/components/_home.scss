@@ -19,6 +19,10 @@
 			background-attachment: fixed;
 			transform-origin: center;
 			pointer-events: none;
+
+			@media screen and (max-width: 768px) {
+				background-attachment: unset;
+			}
 		}
 
 		&__title {

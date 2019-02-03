@@ -9,7 +9,7 @@ class Global {
 
 			var scrollPercent = $(document).scrollTop() / 80;
 			var scalePercent = ($(document).scrollTop() / 30) + 100;
-			if(window.innerWidth > 700) {
+			if(window.innerWidth > 768) {
 				$('.hero__media').attr('style', 'filter: blur(' + scrollPercent + 'px); background-size: ' + scalePercent + '% auto');
 			} else {
 				$('.hero__media').attr('style', 'filter: blur(' + scrollPercent + 'px); background-size:  auto ' + scalePercent + '%');
