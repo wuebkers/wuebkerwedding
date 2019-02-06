@@ -206,6 +206,7 @@
 		font-family: 'open sans', sans-serif;
 		padding: 15px 25px;
 		border: 3px solid #ebb000;
+		color: #737170;
 		text-transform: uppercase;
 		letter-spacing: -.5px;
 		margin: 30px auto 0;
@@ -226,7 +227,8 @@
 
 		&:hover {
 			background: #ebb000;
-			color: #fff;
+			color: #fff; 
+			text-decoration: none;
 		}
 	}
 
